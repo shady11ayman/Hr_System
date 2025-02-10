@@ -1,0 +1,43 @@
+﻿using Hr_System_Demo_3.lookups;
+using Hr_System_Demo_3.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace Hr_System_Demo_3
+{
+    public class AppDbContext :DbContext
+    {
+
+        public AppDbContext(DbContextOptions options) : base(options)
+        {
+
+        }
+
+        public DbSet<Employee> Employees { get; set; }
+        public DbSet<Department> Departments { get; set; }
+        public DbSet<Position> Positions { get; set; }
+        public DbSet<ShiftType> ShiftTypes { get; set; }
+        public DbSet<ContractType> ContractTypes { get; set; }
+        public DbSet<LeaveType> LeaveTypes { get; set; }
+
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<Employee>().ToTable("Employees").HasKey(u => u.empId);
+            modelBuilder.Entity<Department>().ToTable("Departments").HasKey(d => d.deptId);
+
+            modelBuilder.Entity<Employee>()
+            .HasOne(e => e.Department)
+            .WithMany(d => d.Employees)
+            .HasForeignKey(e => e.deptId);
+
+            //modelBuilder.Entity<Product>().ToTable("Products").HasKey(p => p.Id);
+            //modelBuilder.Entity<Product>().ToTable("Products")
+            //      .HasOne(p => p.User)
+            //      .WithMany(u => u.Products)
+            //      .HasForeignKey(p => p.UserId);
+
+
+        }
+    }
+}
