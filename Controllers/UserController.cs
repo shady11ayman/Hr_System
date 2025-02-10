@@ -30,7 +30,9 @@ namespace Hr_System_Demo_3.Controllers
                 empEmail = request.Email,
                 empPassword = request.Password,
                 deptId = request.deptId,
-                Hr_Id = Guid.Parse(hrId)
+                Hr_Id = Guid.Parse(hrId),
+                Role = request.Role
+
             };
 
             DbContext.Employees.Add(newEmployee);
@@ -49,34 +51,47 @@ namespace Hr_System_Demo_3.Controllers
         [AllowAnonymous]
         public ActionResult<string> Login(AuthenticateRequest request)
         {
-            var user = DbContext.Set<Employee>().FirstOrDefault(x => x.empName == request.UserName && x.empPassword == request.Password && x.deptId == request.deptId );
-           
-            if (user == null) return Unauthorized();
+            var user = DbContext.Set<Employee>().FirstOrDefault(x =>
+                x.empName == request.UserName &&
+                x.empPassword == request.Password &&
+                x.Role == request.Role
+                );
+
+            if (user == null) return Unauthorized("Invalid credentials");
+
+            if (string.IsNullOrEmpty(user.Role))
+                return Unauthorized("User does not have a role assigned."); 
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Issuer = jwtOptions.Issuer,
                 Audience = jwtOptions.Audience,
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey)), SecurityAlgorithms.HmacSha256),
-                Subject = new ClaimsIdentity(new Claim[]
+                Expires = DateTime.UtcNow.AddMinutes(jwtOptions.Lifetime), 
+                SigningCredentials = new SigningCredentials(
+                    new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey)),
+                    SecurityAlgorithms.HmacSha256),
+                Subject = new ClaimsIdentity(new[]
                 {
-                    new Claim(ClaimTypes.NameIdentifier, user.empId.ToString()),
-                    new Claim(ClaimTypes.Name, user.empName),
-                    new Claim(ClaimTypes.Email, user.empEmail),
-                 //   new Claim(ClaimTypes.NameIdentifier , user.empId),
-                    new Claim(ClaimTypes.Role, "User")
-                })
+            new Claim(ClaimTypes.NameIdentifier, user.empId.ToString()),
+            new Claim(ClaimTypes.Name, user.empName),
+            new Claim(ClaimTypes.Email, user.empEmail),
+            new Claim(ClaimTypes.Role, user.Role)  
+        })
             };
 
             var securityToken = tokenHandler.CreateToken(tokenDescriptor);
             var accessToken = tokenHandler.WriteToken(securityToken);
+
             return Ok(new
             {
                 Token = accessToken,
-                UserId = user.empId
+                UserId = user.empId,
+                Role = user.Role 
             });
         }
+
+        
 
         [HttpPost("signup")]
         [AllowAnonymous]
@@ -85,19 +100,34 @@ namespace Hr_System_Demo_3.Controllers
             if (DbContext.Set<Employee>().Any(x => x.empEmail == request.Email))
                 return BadRequest("User with this email already exists.");
 
+            if (string.IsNullOrWhiteSpace(request.Role))
+                return BadRequest("Role is required.");
+
+            // Ensure only valid roles are assigned
+            var validRoles = new List<string> { "User", "HrEmp", "SuperHr" };
+            if (!validRoles.Contains(request.Role))
+                return BadRequest("Invalid role.");
+
             var newUser = new Employee
             {
                 empName = request.UserName,
                 empEmail = request.Email,
-                empPassword = request.Password, 
-             //   deptId = request.deptId
+                empPassword = request.Password,
+                deptId = request.deptId,
+                Role = request.Role
             };
 
             DbContext.Employees.Add(newUser);
             await DbContext.SaveChangesAsync();
 
-            return Ok("User registered successfully");
+            return Ok(new
+            {
+                Message = "User registered successfully",
+                UserId = newUser.empId,
+                Role = newUser.Role
+            });
         }
+
     }
 }
 

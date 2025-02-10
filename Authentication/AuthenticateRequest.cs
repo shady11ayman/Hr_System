@@ -6,6 +6,7 @@
         public string Password { get; set; }
         public string Email { get; set; }
         public Guid deptId { get; set; }
-      //  public Guid Hr_Id { get; set; }
+        //  public Guid Hr_Id { get; set; }
+          public string Role { get; set; }
     }
 }
