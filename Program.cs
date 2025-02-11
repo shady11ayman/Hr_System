@@ -45,13 +45,13 @@ namespace Hr_System_Demo_3
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
+            //// Configure the HTTP request pipeline.
+            //if (app.Environment.IsDevelopment())
+            //{
                 app.MapOpenApi();
                // app.UseSwaggerUI(options=> options.SwaggerEndpoint("/openapi/v1.json","auth"));
                 app.MapScalarApiReference();
-            }
+            //}
 
             app.UseHttpsRedirection();
 
