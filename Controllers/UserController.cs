@@ -65,19 +65,19 @@ namespace Hr_System_Demo_3.Controllers
             var tokenHandler = new JwtSecurityTokenHandler();
             var tokenDescriptor = new SecurityTokenDescriptor
             {
+                Subject = new ClaimsIdentity(new[]
+             {
+                new Claim(ClaimTypes.NameIdentifier, user.empId.ToString()),
+                new Claim(ClaimTypes.Name, user.empName),
+                new Claim(ClaimTypes.Email, user.empEmail),
+                new Claim(ClaimTypes.Role, user.Role)
+             }, authenticationType: "Bearer"), 
                 Issuer = jwtOptions.Issuer,
                 Audience = jwtOptions.Audience,
-                Expires = DateTime.UtcNow.AddMinutes(jwtOptions.Lifetime), 
+                Expires = DateTime.UtcNow.AddMinutes(jwtOptions.Lifetime),
                 SigningCredentials = new SigningCredentials(
-                    new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey)),
-                    SecurityAlgorithms.HmacSha256),
-                Subject = new ClaimsIdentity(new[]
-                {
-            new Claim(ClaimTypes.NameIdentifier, user.empId.ToString()),
-            new Claim(ClaimTypes.Name, user.empName),
-            new Claim(ClaimTypes.Email, user.empEmail),
-            new Claim(ClaimTypes.Role, user.Role)  
-        })
+                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey)),
+                SecurityAlgorithms.HmacSha256)
             };
 
             var securityToken = tokenHandler.CreateToken(tokenDescriptor);
@@ -92,7 +92,7 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         
-
+        
         [HttpPost("signup")]
         [AllowAnonymous]
         public async Task<ActionResult> SignUp(AuthenticateRequest request)
@@ -127,7 +127,7 @@ namespace Hr_System_Demo_3.Controllers
                 Role = newUser.Role
             });
         }
-
+        
     }
 }
 

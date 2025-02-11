@@ -8,17 +8,17 @@ namespace Hr_System_Demo_3.Controllers
 {
     [Route("[controller]")]
     [ApiController]
-    [Authorize(Roles = "superAdmin")]  
+    [Authorize(Roles = "SuperHr")]
+  //  [AllowAnonymous]
     public class LookupController(AppDbContext DbContext) : ControllerBase
     {
-       
+        
         [HttpGet("positions")]
         public async Task<ActionResult<IEnumerable<Position>>> GetPositions()
         {
             return Ok(await DbContext.Positions.ToListAsync());
         }
 
-        
         [HttpPost("positions")]
         public async Task<ActionResult> AddPosition([FromBody] Position position)
         {
@@ -28,6 +28,28 @@ namespace Hr_System_Demo_3.Controllers
             DbContext.Positions.Add(position);
             await DbContext.SaveChangesAsync();
             return Ok("Position added successfully.");
+        }
+
+        [HttpPut("positions/{id}")]
+        public async Task<ActionResult> UpdatePosition(int id, [FromBody] Position position)
+        {
+            var existing = await DbContext.Positions.FindAsync(id);
+            if (existing == null) return NotFound();
+
+            existing.Name = position.Name;
+            await DbContext.SaveChangesAsync();
+            return Ok("Position updated successfully.");
+        }
+
+        [HttpDelete("positions/{id}")]
+        public async Task<ActionResult> DeletePosition(int id)
+        {
+            var existing = await DbContext.Positions.FindAsync(id);
+            if (existing == null) return NotFound();
+
+            DbContext.Positions.Remove(existing);
+            await DbContext.SaveChangesAsync();
+            return Ok("Position deleted successfully.");
         }
 
         [HttpGet("shift-types")]
@@ -47,13 +69,87 @@ namespace Hr_System_Demo_3.Controllers
             return Ok("Shift type added successfully.");
         }
 
+        [HttpPut("shift-types/{id}")]
+        public async Task<ActionResult> UpdateShiftType(int id, [FromBody] ShiftType shiftType)
+        {
+            var existing = await DbContext.ShiftTypes.FindAsync(id);
+            if (existing == null) return NotFound();
+
+            existing.Name = shiftType.Name;
+            await DbContext.SaveChangesAsync();
+            return Ok("Shift type updated successfully.");
+        }
+
+        [HttpDelete("shift-types/{id}")]
+        public async Task<ActionResult> DeleteShiftType(int id)
+        {
+            var existing = await DbContext.ShiftTypes.FindAsync(id);
+            if (existing == null) return NotFound();
+
+            DbContext.ShiftTypes.Remove(existing);
+            await DbContext.SaveChangesAsync();
+            return Ok("Shift type deleted successfully.");
+        }
+
         [HttpGet("departments")]
         public async Task<ActionResult<IEnumerable<Department>>> GetDepartments()
         {
-            return Ok(await DbContext.Departments.ToListAsync());
+            var departments = await DbContext.Departments
+                .Select(d => new Department { deptId = d.deptId, deptName = d.deptName })
+                .ToListAsync();
+            return Ok(departments);
         }
 
-   
+        
+        [HttpPost("add-department")]
+        [Authorize(Roles = "HrEmp, SuperHr")]
+        public async Task<ActionResult> AddDepartment([FromBody] Department department)
+        {
+            if (string.IsNullOrEmpty(department.deptName))
+                return BadRequest("Department name is required.");
+
+            department.deptId = Guid.NewGuid();
+            DbContext.Departments.Add(department);
+            await DbContext.SaveChangesAsync();
+
+            return Ok(new { Message = "Department added successfully", DepartmentId = department.deptId });
+        }
+
+        
+        [HttpPut("update-department/{id}")]
+        [Authorize(Roles = "HrEmp, SuperHr")]
+        public async Task<ActionResult> UpdateDepartment(Guid id, Department department)
+        {
+            var existingDepartment = await DbContext.Departments.FindAsync(id);
+            if (existingDepartment == null)
+                return NotFound("Department not found.");
+
+            if (string.IsNullOrEmpty(department.deptName))
+                return BadRequest("Department name is required.");
+
+            existingDepartment.deptName = department.deptName;
+            await DbContext.SaveChangesAsync();
+
+            return Ok(new { Message = "Department updated successfully", DepartmentId = existingDepartment.deptId });
+        }
+
+        
+        [HttpDelete("delete-department/{id}")]
+        [Authorize(Roles = "SuperHr")]
+        public async Task<ActionResult> DeleteDepartment(Guid id)
+        {
+            var department = await DbContext.Departments.Include(d => d.Employees).FirstOrDefaultAsync(d => d.deptId == id);
+            if (department == null)
+                return NotFound("Department not found.");
+
+            if (department.Employees.Any())
+                return BadRequest("Cannot delete department with assigned employees.");
+
+            DbContext.Departments.Remove(department);
+            await DbContext.SaveChangesAsync();
+
+            return Ok(new { Message = "Department deleted successfully", DepartmentId = id });
+        }
 
         [HttpGet("contract-types")]
         public async Task<ActionResult<IEnumerable<ContractType>>> GetContractTypes()
@@ -72,6 +168,28 @@ namespace Hr_System_Demo_3.Controllers
             return Ok("Contract type added successfully.");
         }
 
+        [HttpPut("contract-types/{id}")]
+        public async Task<ActionResult> UpdateContractType(int id, [FromBody] ContractType contractType)
+        {
+            var existing = await DbContext.ContractTypes.FindAsync(id);
+            if (existing == null) return NotFound();
+
+            existing.Name = contractType.Name;
+            await DbContext.SaveChangesAsync();
+            return Ok("Contract type updated successfully.");
+        }
+
+        [HttpDelete("contract-types/{id}")]
+        public async Task<ActionResult> DeleteContractType(int id)
+        {
+            var existing = await DbContext.ContractTypes.FindAsync(id);
+            if (existing == null) return NotFound();
+
+            DbContext.ContractTypes.Remove(existing);
+            await DbContext.SaveChangesAsync();
+            return Ok("Contract type deleted successfully.");
+        }
+
         [HttpGet("leave-types")]
         public async Task<ActionResult<IEnumerable<LeaveType>>> GetLeaveTypes()
         {
@@ -87,6 +205,28 @@ namespace Hr_System_Demo_3.Controllers
             DbContext.LeaveTypes.Add(leaveType);
             await DbContext.SaveChangesAsync();
             return Ok("Leave type added successfully.");
+        }
+
+        [HttpPut("leave-types/{id}")]
+        public async Task<ActionResult> UpdateLeaveType(int id, [FromBody] LeaveType leaveType)
+        {
+            var existing = await DbContext.LeaveTypes.FindAsync(id);
+            if (existing == null) return NotFound();
+
+            existing.Name = leaveType.Name;
+            await DbContext.SaveChangesAsync();
+            return Ok("Leave type updated successfully.");
+        }
+
+        [HttpDelete("leave-types/{id}")]
+        public async Task<ActionResult> DeleteLeaveType(int id)
+        {
+            var existing = await DbContext.LeaveTypes.FindAsync(id);
+            if (existing == null) return NotFound();
+
+            DbContext.LeaveTypes.Remove(existing);
+            await DbContext.SaveChangesAsync();
+            return Ok("Leave type deleted successfully.");
         }
     }
 }
