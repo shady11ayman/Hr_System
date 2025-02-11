@@ -9,7 +9,7 @@ using System.Security.Claims;
 using System.Text;
 
 namespace Hr_System_Demo_3.Authentication
-{
+{/*
     [Route("")]
     [ApiController]
     public class authController (AppDbContext DbContext , JwtOptions jwtOptions ) : ControllerBase
@@ -53,5 +53,5 @@ namespace Hr_System_Demo_3.Authentication
                 UserId = user.empId
             });
         }
-    }
+    }*/
 }
