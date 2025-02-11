@@ -91,39 +91,6 @@ namespace Hr_System_Demo_3.Controllers
                 IsSuperHr = isSuperHr
             });
         }
-
-        [HttpPost("signup")]
-        [Authorize(Roles = "SuperHr")]
-        public async Task<ActionResult> SignUp(HrRequest request)
-        {
-            if (DbContext.Set<Employee>().Any(x => x.empEmail == request.Email))
-                return BadRequest("User with this email already exists.");
-
-            if (string.IsNullOrWhiteSpace(request.Role))
-                return BadRequest("Role is required.");
-
-            var validRoles = new List<string> { "User", "HrEmp", "SuperHr" };
-            if (!validRoles.Contains(request.Role))
-                return BadRequest("Invalid role.");
-
-            var newUser = new Employee
-            {
-                empName = request.UserName,
-                empEmail = request.Email,
-                empPassword = _passwordHasher.HashPassword(null, request.Password),
-                deptId = request.deptId,
-                Role = request.Role
-            };
-
-            DbContext.Employees.Add(newUser);
-            await DbContext.SaveChangesAsync();
-
-            return Ok(new
-            {
-                Message = "User registered successfully",
-                UserId = newUser.empId,
-                Role = newUser.Role
-            });
-        }
+        
     }
 }
