@@ -1,4 +1,5 @@
 ﻿using Hr_System_Demo_3.Authentication;
+using Hr_System_Demo_3.Day_off_requests;
 using Hr_System_Demo_3.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -91,6 +92,63 @@ namespace Hr_System_Demo_3.Controllers
                 IsSuperHr = isSuperHr
             });
         }
-        
+        [HttpPost("apply-leave-request")]
+        [Authorize(Roles = "User, HrEmp, SuperHr")]
+        public async Task<ActionResult> ApplyLeaveRequest([FromBody] ApplyLeaveRequestDto request)
+        {
+            
+            var employeeIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var employeeNameClaim = User.FindFirst(ClaimTypes.Name)?.Value;
+
+            if (string.IsNullOrEmpty(employeeIdClaim) || string.IsNullOrEmpty(employeeNameClaim))
+            {
+                return Unauthorized("Invalid user credentials");
+            }
+
+            
+            var leaveRequest = new LeaveRequest
+            {
+                EmployeeId = Guid.Parse(employeeIdClaim),
+                EmployeeName = employeeNameClaim,
+                LeaveType = request.LeaveType,
+                LeaveFrom = request.LeaveFrom,
+                LeaveTo = request.LeaveTo,
+                Status = LeaveStatus.Pending, 
+                Action = "Pending" 
+            };
+
+            DbContext.LeaveRequests.Add(leaveRequest);
+            await DbContext.SaveChangesAsync();
+
+            return Ok(new { Message = "Leave request submitted successfully", LeaveRequestId = leaveRequest.Id });
+        }
+
+        [HttpGet("leave-requests")]
+        [Authorize(Roles = "HrEmp, SuperHr")]
+        public async Task<ActionResult<IEnumerable<LeaveRequest>>> GetAllLeaveRequests()
+        {
+            var leaveRequests = await DbContext.LeaveRequests.ToListAsync();
+            return Ok(leaveRequests);
+        }
+
+        [HttpGet("my-leave-requests")]
+        [Authorize(Roles = "User, HrEmp, SuperHr")]
+        public async Task<ActionResult<IEnumerable<LeaveRequest>>> GetMyLeaveRequests()
+        {
+            var employeeIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(employeeIdClaim))
+            {
+                return Unauthorized("Invalid user credentials");
+            }
+
+            var employeeId = Guid.Parse(employeeIdClaim);
+            var myLeaveRequests = await DbContext.LeaveRequests
+                .Where(lr => lr.EmployeeId == employeeId)
+                .ToListAsync();
+
+            return Ok(myLeaveRequests);
+        }
+
     }
 }

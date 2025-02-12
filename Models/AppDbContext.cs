@@ -1,4 +1,5 @@
-﻿using Hr_System_Demo_3.lookups;
+﻿using Hr_System_Demo_3.Day_off_requests;
+using Hr_System_Demo_3.lookups;
 using Hr_System_Demo_3.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,6 +19,9 @@ namespace Hr_System_Demo_3
         public DbSet<ShiftType> ShiftTypes { get; set; }
         public DbSet<ContractType> ContractTypes { get; set; }
         public DbSet<LeaveType> LeaveTypes { get; set; }
+        public DbSet<LeaveRequest> LeaveRequests { get; set; }
+
+
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -31,6 +35,10 @@ namespace Hr_System_Demo_3
             .WithMany(d => d.Employees)
             .HasForeignKey(e => e.deptId);
 
+            modelBuilder.Entity<LeaveRequest>()
+          .HasOne(lr => lr.Employee)
+          .WithMany()
+          .HasForeignKey(lr => lr.EmployeeId);
             //modelBuilder.Entity<Product>().ToTable("Products").HasKey(p => p.Id);
             //modelBuilder.Entity<Product>().ToTable("Products")
             //      .HasOne(p => p.User)
