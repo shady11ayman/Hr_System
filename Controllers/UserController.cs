@@ -150,5 +150,64 @@ namespace Hr_System_Demo_3.Controllers
             return Ok(myLeaveRequests);
         }
 
+        [HttpGet("employee-leave-requests/{employeeId}")]
+        [Authorize(Roles = "HrEmp, SuperHr")]
+        public async Task<ActionResult<IEnumerable<LeaveRequest>>> GetEmployeeLeaveRequests(Guid employeeId)
+        {
+            var leaveRequests = await DbContext.LeaveRequests
+                .Where(lr => lr.EmployeeId == employeeId && lr.Status == LeaveStatus.Pending)
+                .ToListAsync();
+
+            if (!leaveRequests.Any())
+            {
+                return NotFound("No pending leave requests found for this employee.");
+            }
+
+            return Ok(leaveRequests);
+        }
+
+        [HttpPost("leave-request-action")]
+        [Authorize(Roles = "HrEmp, SuperHr")]
+        public async Task<ActionResult> LeaveRequestAction(int leaveRequestId, bool isApproved, string? rejectReason = null)
+        {
+            var leaveRequest = await DbContext.LeaveRequests.FindAsync(leaveRequestId);
+            if (leaveRequest == null)
+            {
+                return NotFound("Leave request not found");
+            }
+
+            var employee = await DbContext.Employees.FindAsync(leaveRequest.EmployeeId);
+            if (employee == null)
+            {
+                return NotFound("Employee not found");
+            }
+
+            if (leaveRequest.Status != LeaveStatus.Pending)
+            {
+                return BadRequest("Leave request has already been processed");
+            }
+
+            if (isApproved)
+            {
+                leaveRequest.Status = LeaveStatus.Accepted;
+                leaveRequest.Action = "Approved";
+
+                int leaveDays = (leaveRequest.LeaveTo - leaveRequest.LeaveFrom).Days + 1;
+                leaveRequest.workingDaysOff = leaveDays.ToString();
+                leaveRequest.TotalDaysOff = leaveDays.ToString();
+            }
+            else
+            {
+                leaveRequest.Status = LeaveStatus.Refused;
+                leaveRequest.Action = "Rejected";
+                leaveRequest.RejectReason = rejectReason;
+            }
+
+            await DbContext.SaveChangesAsync();
+            return Ok(new { Message = "Leave request processed successfully", LeaveRequestId = leaveRequest.Id, Status = leaveRequest.Status });
+        }
+
+
+
     }
 }
