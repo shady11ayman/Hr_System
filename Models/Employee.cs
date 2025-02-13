@@ -13,10 +13,8 @@ namespace Hr_System_Demo_3.Models
         public Guid Hr_Id { get; set; }
         public string Role { get; set; }
 
-       // public int ShiftTypeId { get; set; }  // ✅ Allow NULL to avoid conflicts
-
-    //    [ForeignKey("ShiftTypeId")]
-       // public ShiftType ShiftType { get; set; }  // ✅ Nullable to avoid issues
+        public int ShiftTypeId { get; set; }  
+        public ShiftType ShiftType { get; set; }  
 
         public Department Department { get; set; }
     }

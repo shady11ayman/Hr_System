@@ -2,6 +2,7 @@
 using Hr_System_Demo_3.Day_off_requests;
 using Hr_System_Demo_3.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -15,6 +16,7 @@ namespace Hr_System_Demo_3.Controllers
 {
     [Route("[controller]")]
     [ApiController]
+    [EnableCors("AllowConfiguredOrigins")]
     public class UserController(AppDbContext DbContext, JwtOptions jwtOptions) : ControllerBase
     {
         private readonly PasswordHasher<Employee> _passwordHasher = new();

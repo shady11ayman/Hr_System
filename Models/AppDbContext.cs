@@ -16,7 +16,7 @@ namespace Hr_System_Demo_3
         public DbSet<Employee> Employees { get; set; }
         public DbSet<Department> Departments { get; set; }
         public DbSet<Position> Positions { get; set; }
-        //public DbSet<ShiftType> ShiftTypes { get; set; }
+        public DbSet<ShiftType> ShiftTypes { get; set; }
         public DbSet<ContractType> ContractTypes { get; set; }
         public DbSet<LeaveType> LeaveTypes { get; set; }
         public DbSet<LeaveRequest> LeaveRequests { get; set; }
@@ -43,17 +43,13 @@ namespace Hr_System_Demo_3
           .WithMany()
           .HasForeignKey(lr => lr.EmployeeId);
 
-          /*  modelBuilder.Entity<Employee>()
-        .HasOne(e => e.ShiftType)
-        .WithMany(s => s.Employees)
-        .HasForeignKey(e => e.ShiftTypeId)
-        .OnDelete(DeleteBehavior.SetNull); // ✅ Prevents FK conflicts*/
-            //modelBuilder.Entity<Product>().ToTable("Products").HasKey(p => p.Id);
-            //modelBuilder.Entity<Product>().ToTable("Products")
-            //      .HasOne(p => p.User)
-            //      .WithMany(u => u.Products)
-            //      .HasForeignKey(p => p.UserId);
+            modelBuilder.Entity<Employee>()
+    .HasOne(e => e.ShiftType)
+    .WithMany(st => st.Employees)
+    .HasForeignKey(e => e.ShiftTypeId);
 
+
+         
 
         }
     }

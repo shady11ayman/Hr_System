@@ -1,4 +1,4 @@
-﻿/*using Hr_System_Demo_3.Models;
+﻿using Hr_System_Demo_3.Models;
 using System.ComponentModel.DataAnnotations;
 
 namespace Hr_System_Demo_3.lookups
@@ -22,4 +22,3 @@ namespace Hr_System_Demo_3.lookups
 
 
 }
-*/

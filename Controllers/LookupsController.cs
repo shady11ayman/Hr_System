@@ -1,6 +1,7 @@
 ﻿using Hr_System_Demo_3.lookups;
 using Hr_System_Demo_3.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,7 +10,8 @@ namespace Hr_System_Demo_3.Controllers
     [Route("[controller]")]
     [ApiController]
     [Authorize(Roles = "SuperHr")]
-  //  [AllowAnonymous]
+    [EnableCors("AllowConfiguredOrigins")]
+    //  [AllowAnonymous]
     public class LookupController(AppDbContext DbContext) : ControllerBase
     {
         

@@ -13,9 +13,24 @@ namespace Hr_System_Demo_3
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+            var corsSettings = new CorsSettings();
+            builder.Configuration.GetSection("CorsSettings").Bind(corsSettings);
+
+            // Register CORS with dynamic origins
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowConfiguredOrigins", policy =>
+                    policy.WithOrigins(corsSettings.AllowedOrigins) // Pass the array from settings
+                          .AllowAnyMethod()
+                          .AllowAnyHeader()
+                          .AllowCredentials()); // Use this if sending cookies/auth headers
+            });
+
 
             // Add services to the container
             builder.Services.AddControllers();
+            builder.Services.Configure<CorsSettings>(builder.Configuration.GetSection("CorsSettings"));
+
             builder.Services.AddOpenApi();
 
             // Database Configuration
@@ -52,7 +67,18 @@ namespace Hr_System_Demo_3
                     };
                 });
 
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowSpecificOrigins", policy =>
+                    policy.WithOrigins("http://localhost:3000", "http://82.112.254.244:8011")
+                          .AllowAnyMethod()
+                          .AllowAnyHeader()
+                          .AllowCredentials()); // Use only if sending cookies/auth headers
+            });
+
             var app = builder.Build();
+
+            app.UseCors("AllowConfiguredOrigins");
 
             // Configure Middleware
             app.UseHttpsRedirection();
