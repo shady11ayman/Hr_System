@@ -8,6 +8,6 @@
         public Guid deptId { get; set; }
         public string Role { get; set; }
         //  public Guid Hr_Id { get; set; }
-
+        
     }
 }

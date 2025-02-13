@@ -48,11 +48,12 @@ namespace Hr_System_Demo_3.Controllers
             });*/
 
             [HttpPost("add-employee-application")]
-            [Authorize(Roles = "HrEmp, SuperHr")]
+        //  [Authorize(Roles = "HrEmp, SuperHr")]
+            [AllowAnonymous]
             public async Task<ActionResult> AddEmployeeApplication(HrRequest request)
             {
-                var hrId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (hrId == null) return Unauthorized("Invalid HR credentials");
+              /*  var hrId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (hrId == null) return Unauthorized("Invalid HR credentials");*/
 
                 var newApplication = new EmployeeApplication
                 {
@@ -60,9 +61,10 @@ namespace Hr_System_Demo_3.Controllers
                     Email = request.Email,
                     PasswordHash = _passwordHasher.HashPassword(null, request.Password),
                     deptId = request.deptId,
-                    HrId = Guid.Parse(hrId),
+                    HrId = Guid.Parse("a8f83315-8c71-47cd-b42b-c95c4acdf7a1"), //Guid.Parse(hrId),
                     Role = request.Role,
-                    Status = "Pending"
+                    Status = "Pending",
+
                 };
 
                 DbContext.EmployeeApplications.Add(newApplication);
@@ -82,7 +84,8 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpPost("employee-application-action")]
-        [Authorize(Roles = "SuperHr")]
+        //  [Authorize(Roles = "SuperHr")]
+        [AllowAnonymous]
         public async Task<ActionResult> EmployeeApplicationAction(int applicationId, bool isApproved, string? rejectReason = null)
         {
             var application = await DbContext.EmployeeApplications.FindAsync(applicationId);
@@ -101,8 +104,10 @@ namespace Hr_System_Demo_3.Controllers
                     empPassword = application.PasswordHash,
                     deptId = application.deptId,
                     Hr_Id = application.HrId,
-                    Role = application.Role
+                    Role = application.Role,
+                    ShiftTypeId = application.ShiftTypeId
                 };
+
 
                 DbContext.Employees.Add(newEmployee);
                 application.Status = "Approved";
@@ -295,7 +300,7 @@ namespace Hr_System_Demo_3.Controllers
         }
 
 
-       /* [HttpPost("scan")]
+      /*  [HttpPost("scan")]
         [AllowAnonymous]
         public async Task<ActionResult> Scan(UserIdDto request)
         {
@@ -404,7 +409,7 @@ namespace Hr_System_Demo_3.Controllers
             return Ok(deductions);
         }
 
+        
         */
-
     }
 }

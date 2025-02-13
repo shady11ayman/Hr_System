@@ -9,9 +9,9 @@ namespace Hr_System_Demo_3.Controllers
 {
     [Route("[controller]")]
     [ApiController]
-    [Authorize(Roles = "SuperHr")]
+    //[Authorize(Roles = "SuperHr")]
     [EnableCors("AllowConfiguredOrigins")]
-    //  [AllowAnonymous]
+      [AllowAnonymous]
     public class LookupController(AppDbContext DbContext) : ControllerBase
     {
         
@@ -53,7 +53,7 @@ namespace Hr_System_Demo_3.Controllers
             await DbContext.SaveChangesAsync();
             return Ok("Position deleted successfully.");
         }
-        /*
+        
         [HttpGet("shift-types")]
         public async Task<ActionResult<IEnumerable<ShiftType>>> GetShiftTypes()
         {
@@ -92,7 +92,7 @@ namespace Hr_System_Demo_3.Controllers
             await DbContext.SaveChangesAsync();
             return Ok("Shift type deleted successfully.");
         }
-        */
+        
         [HttpGet("departments")]
         public async Task<ActionResult<IEnumerable<Department>>> GetDepartments()
         {

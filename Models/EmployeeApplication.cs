@@ -1,4 +1,6 @@
-﻿namespace Hr_System_Demo_3.Models
+﻿using Hr_System_Demo_3.lookups;
+
+namespace Hr_System_Demo_3.Models
 {
     public class EmployeeApplication
     {
@@ -11,5 +13,7 @@
         public Guid HrId { get; set; } 
         public string Status { get; set; } = "Pending"; 
         public string? RejectReason { get; set; } 
+        public int ShiftTypeId { get; set; }
+        public ShiftType? ShiftType { get; set; }
     }
 }
