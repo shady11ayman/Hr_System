@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Hr_System_Demo_3.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250213155809_shiftadd")]
-    partial class shiftadd
+    [Migration("20250213162002_shifadd")]
+    partial class shifadd
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

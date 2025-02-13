@@ -49,18 +49,6 @@ namespace Hr_System_Demo_3.Migrations
                     table.PrimaryKey("PK_Positions", x => x.Id);
                 });
 
-            migrationBuilder.CreateTable(
-                name: "ShiftTypes",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ShiftTypes", x => x.Id);
-                });
         }
 
         /// <inheritdoc />
@@ -75,8 +63,7 @@ namespace Hr_System_Demo_3.Migrations
             migrationBuilder.DropTable(
                 name: "Positions");
 
-            migrationBuilder.DropTable(
-                name: "ShiftTypes");
+          
         }
     }
 }
