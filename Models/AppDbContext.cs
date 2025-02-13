@@ -16,7 +16,7 @@ namespace Hr_System_Demo_3
         public DbSet<Employee> Employees { get; set; }
         public DbSet<Department> Departments { get; set; }
         public DbSet<Position> Positions { get; set; }
-       // public DbSet<ShiftType> ShiftTypes { get; set; }
+        //public DbSet<ShiftType> ShiftTypes { get; set; }
         public DbSet<ContractType> ContractTypes { get; set; }
         public DbSet<LeaveType> LeaveTypes { get; set; }
         public DbSet<LeaveRequest> LeaveRequests { get; set; }

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Hr_System_Demo_3.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250213151516_remove_shiftType")]
-    partial class remove_shiftType
+    [Migration("20250213153122_shiftrm")]
+    partial class shiftrm
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
