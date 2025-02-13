@@ -4,6 +4,7 @@ using Hr_System_Demo_3;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Hr_System_Demo_3.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250213141434_Deduction_added")]
+    partial class Deduction_added
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -143,6 +146,9 @@ namespace Hr_System_Demo_3.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("ShiftTypeId")
+                        .HasColumnType("int");
+
                     b.Property<Guid>("deptId")
                         .HasColumnType("uniqueidentifier");
 
@@ -159,6 +165,8 @@ namespace Hr_System_Demo_3.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("empId");
+
+                    b.HasIndex("ShiftTypeId");
 
                     b.HasIndex("deptId");
 
@@ -285,6 +293,29 @@ namespace Hr_System_Demo_3.Migrations
                     b.ToTable("Positions");
                 });
 
+            modelBuilder.Entity("Hr_System_Demo_3.lookups.ShiftType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<TimeSpan>("EndTime")
+                        .HasColumnType("time");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<TimeSpan>("StartTime")
+                        .HasColumnType("time");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ShiftTypes");
+                });
+
             modelBuilder.Entity("Hr_System_Demo_3.Day_off_requests.LeaveRequest", b =>
                 {
                     b.HasOne("Hr_System_Demo_3.Models.Employee", "Employee")
@@ -309,6 +340,12 @@ namespace Hr_System_Demo_3.Migrations
 
             modelBuilder.Entity("Hr_System_Demo_3.Models.Employee", b =>
                 {
+                    b.HasOne("Hr_System_Demo_3.lookups.ShiftType", "ShiftType")
+                        .WithMany()
+                        .HasForeignKey("ShiftTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("Hr_System_Demo_3.Models.Department", "Department")
                         .WithMany("Employees")
                         .HasForeignKey("deptId")
@@ -316,6 +353,8 @@ namespace Hr_System_Demo_3.Migrations
                         .IsRequired();
 
                     b.Navigation("Department");
+
+                    b.Navigation("ShiftType");
                 });
 
             modelBuilder.Entity("Hr_System_Demo_3.Models.ScanRecord", b =>

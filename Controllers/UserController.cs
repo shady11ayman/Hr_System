@@ -19,7 +19,7 @@ namespace Hr_System_Demo_3.Controllers
     {
         private readonly PasswordHasher<Employee> _passwordHasher = new();
 
-        [HttpPost("add-employee")]
+       /* [HttpPost("add-employee")]
         [Authorize(Roles = "HrEmp, SuperHr")]
         public async Task<ActionResult> AddEmployee(HrRequest request)
         {
@@ -43,8 +43,78 @@ namespace Hr_System_Demo_3.Controllers
                 Message = "Employee added successfully",
                 EmployeeId = newEmployee.empId,
                 HrId = hrId
-            });
+            });*/
+
+            [HttpPost("add-employee-application")]
+            [Authorize(Roles = "HrEmp, SuperHr")]
+            public async Task<ActionResult> AddEmployeeApplication(HrRequest request)
+            {
+                var hrId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (hrId == null) return Unauthorized("Invalid HR credentials");
+
+                var newApplication = new EmployeeApplication
+                {
+                    UserName = request.UserName,
+                    Email = request.Email,
+                    PasswordHash = _passwordHasher.HashPassword(null, request.Password),
+                    deptId = request.deptId,
+                    HrId = Guid.Parse(hrId),
+                    Role = request.Role,
+                    Status = "Pending"
+                };
+
+                DbContext.EmployeeApplications.Add(newApplication);
+                await DbContext.SaveChangesAsync();
+                return Ok(new { Message = "Employee application submitted successfully", ApplicationId = newApplication.Id });
+            }
+        
+        [HttpGet("employee-applications")]
+        [Authorize(Roles = "SuperHr")]
+        public async Task<ActionResult<IEnumerable<EmployeeApplication>>> GetEmployeeApplications()
+        {
+            var applications = await DbContext.EmployeeApplications
+                .Where(e => e.Status == "Pending")
+                .ToListAsync();
+
+            return Ok(applications);
         }
+
+        [HttpPost("employee-application-action")]
+        [Authorize(Roles = "SuperHr")]
+        public async Task<ActionResult> EmployeeApplicationAction(int applicationId, bool isApproved, string? rejectReason = null)
+        {
+            var application = await DbContext.EmployeeApplications.FindAsync(applicationId);
+            if (application == null) return NotFound("Employee application not found");
+
+            if (application.Status != "Pending")
+                return BadRequest("Application has already been processed");
+
+            if (isApproved)
+            {
+                // Move the employee from applications to Employees table
+                var newEmployee = new Employee
+                {
+                    empName = application.UserName,
+                    empEmail = application.Email,
+                    empPassword = application.PasswordHash,
+                    deptId = application.deptId,
+                    Hr_Id = application.HrId,
+                    Role = application.Role
+                };
+
+                DbContext.Employees.Add(newEmployee);
+                application.Status = "Approved";
+            }
+            else
+            {
+                application.Status = "Rejected";
+                application.RejectReason = rejectReason;
+            }
+
+            await DbContext.SaveChangesAsync();
+            return Ok(new { Message = "Application processed successfully", ApplicationId = application.Id, Status = application.Status });
+        }
+
 
         [HttpPost("login")]
         [AllowAnonymous]
@@ -207,7 +277,132 @@ namespace Hr_System_Demo_3.Controllers
             return Ok(new { Message = "Leave request processed successfully", LeaveRequestId = leaveRequest.Id, Status = leaveRequest.Status });
         }
 
+        public class UserIdDto
+        {
+            public Guid UserId { get; set; }
+        }
 
+        private decimal CalculateDeduction(TimeSpan timeDifference)
+        {
+            double minutesLate = timeDifference.TotalMinutes;
+
+            if (minutesLate <= 5) return 0;  // No deduction for <= 5 minutes
+            if (minutesLate <= 15) return 5; // Small deduction
+            if (minutesLate <= 30) return 10;
+            return 20; // Large deduction
+        }
+
+
+       /* [HttpPost("scan")]
+        [AllowAnonymous]
+        public async Task<ActionResult> Scan(UserIdDto request)
+        {
+            var userId = request.UserId;
+            var employee = await DbContext.Employees
+                .Include(e => e.ShiftType)
+                .FirstOrDefaultAsync(e => e.empId == userId);
+
+            if (employee == null) return NotFound("User not found");
+
+            DateTime today = DateTime.UtcNow.Date;
+            var scanRecord = await DbContext.ScanRecords
+                .FirstOrDefaultAsync(s => s.EmployeeId == userId && s.Date == today);
+
+            DateTime currentTime = DateTime.UtcNow;
+            TimeSpan shiftStart = employee.ShiftType.StartTime;
+            TimeSpan shiftEnd = employee.ShiftType.EndTime;
+
+            if (scanRecord == null)
+            {
+                scanRecord = new ScanRecord
+                {
+                    EmployeeId = userId,
+                    Date = today,
+                    EntryTime = currentTime,
+                    ExitTime = null
+                };
+
+                DbContext.ScanRecords.Add(scanRecord);
+                await DbContext.SaveChangesAsync();
+
+                if (currentTime.TimeOfDay > shiftStart)
+                {
+                    // **Late Arrival Deduction**
+                    var delay = currentTime.TimeOfDay - shiftStart;
+                    var deductionAmount = CalculateDeduction(delay);  // Corrected function name
+
+                    if (deductionAmount > 0)
+                    {
+                        var deduction = new Deduction
+                        {
+                            EmployeeId = userId,
+                            DeptId = employee.deptId,
+                            Date = today,
+                            EntryTime = currentTime,
+                            ExitTime = null,
+                            Reason = "Late Arrival",
+                            PenaltyAmount = deductionAmount
+                        };
+                        DbContext.Deductions.Add(deduction);
+                        await DbContext.SaveChangesAsync();
+                    }
+                }
+
+                return Ok(new { Message = "Entry scan recorded successfully", EntryTime = scanRecord.EntryTime });
+            }
+            else
+            {
+                if (scanRecord.ExitTime == null)
+                {
+                    scanRecord.ExitTime = currentTime;
+                    await DbContext.SaveChangesAsync();
+
+                    if (currentTime.TimeOfDay < shiftEnd)
+                    {
+                        // **Early Leave Deduction**
+                        var earlyLeaveDuration = shiftEnd - currentTime.TimeOfDay;
+                        var deductionAmount = CalculateDeduction(earlyLeaveDuration);
+
+                        if (deductionAmount > 0)
+                        {
+                            var deduction = new Deduction
+                            {
+                                EmployeeId = userId,
+                                DeptId = employee.deptId,
+                                Date = today,
+                                EntryTime = scanRecord.EntryTime,
+                                ExitTime = currentTime,
+                                Reason = "Early Leave",
+                                PenaltyAmount = deductionAmount
+                            };
+                            DbContext.Deductions.Add(deduction);
+                            await DbContext.SaveChangesAsync();
+                        }
+                    }
+
+                    return Ok(new { Message = "Exit scan recorded successfully", ExitTime = scanRecord.ExitTime });
+                }
+                else
+                {
+                    return BadRequest("You have already scanned for exit today.");
+                }
+            }
+        }
+
+        [HttpGet("deductions/{employeeId}")]
+        [Authorize(Roles = "HrEmp, SuperHr")]
+        public async Task<ActionResult<IEnumerable<Deduction>>> GetEmployeeDeductions(Guid employeeId)
+        {
+            var deductions = await DbContext.Deductions
+                .Where(d => d.EmployeeId == employeeId)
+                .ToListAsync();
+
+            if (!deductions.Any()) return NotFound("No deductions found.");
+
+            return Ok(deductions);
+        }
+
+        */
 
     }
 }

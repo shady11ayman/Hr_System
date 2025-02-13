@@ -4,6 +4,7 @@ using Hr_System_Demo_3;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Hr_System_Demo_3.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250213115555_employee_application")]
+    partial class employee_application
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -78,43 +81,6 @@ namespace Hr_System_Demo_3.Migrations
                     b.ToTable("LeaveRequests");
                 });
 
-            modelBuilder.Entity("Hr_System_Demo_3.Models.Deduction", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("DeptId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("EmployeeId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("EntryTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("ExitTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("PenaltyAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EmployeeId");
-
-                    b.ToTable("Deductions");
-                });
-
             modelBuilder.Entity("Hr_System_Demo_3.Models.Department", b =>
                 {
                     b.Property<Guid>("deptId")
@@ -173,6 +139,9 @@ namespace Hr_System_Demo_3.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<Guid>("DeptId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -198,9 +167,6 @@ namespace Hr_System_Demo_3.Migrations
                     b.Property<string>("UserName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("deptId")
-                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
@@ -285,18 +251,24 @@ namespace Hr_System_Demo_3.Migrations
                     b.ToTable("Positions");
                 });
 
-            modelBuilder.Entity("Hr_System_Demo_3.Day_off_requests.LeaveRequest", b =>
+            modelBuilder.Entity("Hr_System_Demo_3.lookups.ShiftType", b =>
                 {
-                    b.HasOne("Hr_System_Demo_3.Models.Employee", "Employee")
-                        .WithMany()
-                        .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
 
-                    b.Navigation("Employee");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ShiftTypes");
                 });
 
-            modelBuilder.Entity("Hr_System_Demo_3.Models.Deduction", b =>
+            modelBuilder.Entity("Hr_System_Demo_3.Day_off_requests.LeaveRequest", b =>
                 {
                     b.HasOne("Hr_System_Demo_3.Models.Employee", "Employee")
                         .WithMany()

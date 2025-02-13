@@ -51,7 +51,7 @@ namespace Hr_System_Demo_3.Controllers
             await DbContext.SaveChangesAsync();
             return Ok("Position deleted successfully.");
         }
-
+        /*
         [HttpGet("shift-types")]
         public async Task<ActionResult<IEnumerable<ShiftType>>> GetShiftTypes()
         {
@@ -90,7 +90,7 @@ namespace Hr_System_Demo_3.Controllers
             await DbContext.SaveChangesAsync();
             return Ok("Shift type deleted successfully.");
         }
-
+        */
         [HttpGet("departments")]
         public async Task<ActionResult<IEnumerable<Department>>> GetDepartments()
         {
