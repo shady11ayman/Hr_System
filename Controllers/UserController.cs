@@ -64,6 +64,7 @@ namespace Hr_System_Demo_3.Controllers
                     HrId = Guid.Parse("a8f83315-8c71-47cd-b42b-c95c4acdf7a1"), //Guid.Parse(hrId),
                     Role = request.Role,
                     Status = "Pending",
+                    ShiftTypeId = request.ShiftTypereq
 
                 };
 
