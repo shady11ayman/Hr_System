@@ -78,6 +78,8 @@ namespace Hr_System_Demo_3.Controllers
             if (existing == null) return NotFound();
 
             existing.Name = shiftType.Name;
+            existing.StartTime = shiftType.StartTime;
+            existing.EndTime = shiftType.EndTime;
             await DbContext.SaveChangesAsync();
             return Ok("Shift type updated successfully.");
         }
