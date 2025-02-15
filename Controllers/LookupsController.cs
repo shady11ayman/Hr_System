@@ -102,7 +102,7 @@ namespace Hr_System_Demo_3.Controllers
             return Ok(departments);
         }
 
-        
+
         [HttpPost("add-department")]
         [Authorize(Roles = "HrEmp, SuperHr")]
         public async Task<ActionResult> AddDepartment([FromBody] Department department)
@@ -110,17 +110,23 @@ namespace Hr_System_Demo_3.Controllers
             if (string.IsNullOrEmpty(department.deptName))
                 return BadRequest("Department name is required.");
 
-            department.deptId = Guid.NewGuid();
-            DbContext.Departments.Add(department);
+            var newDepartment = new Department
+            {
+                deptId = Guid.NewGuid(),
+                deptName = department.deptName,
+                Employees = null  // Ensure employees are not required
+            };
+
+            DbContext.Departments.Add(newDepartment);
             await DbContext.SaveChangesAsync();
 
-            return Ok(new { Message = "Department added successfully", DepartmentId = department.deptId });
+            return Ok(new { Message = "Department added successfully", DepartmentId = newDepartment.deptId });
         }
 
-        
+
         [HttpPut("update-department/{id}")]
         [Authorize(Roles = "HrEmp, SuperHr")]
-        public async Task<ActionResult> UpdateDepartment(Guid id, Department department)
+        public async Task<ActionResult> UpdateDepartment(Guid id, [FromBody] Department department)
         {
             var existingDepartment = await DbContext.Departments.FindAsync(id);
             if (existingDepartment == null)
@@ -135,7 +141,7 @@ namespace Hr_System_Demo_3.Controllers
             return Ok(new { Message = "Department updated successfully", DepartmentId = existingDepartment.deptId });
         }
 
-        
+
         [HttpDelete("delete-department/{id}")]
         [Authorize(Roles = "SuperHr")]
         public async Task<ActionResult> DeleteDepartment(Guid id)

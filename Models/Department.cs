@@ -5,6 +5,6 @@
         public Guid deptId { get; set; }
         public string deptName { get; set; }
 
-        public ICollection<Employee> Employees { get; set; }   
+        public ICollection<Employee>? Employees { get; set; } = null;  // Explicitly nullable
     }
 }
