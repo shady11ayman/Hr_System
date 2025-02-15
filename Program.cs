@@ -70,7 +70,7 @@ namespace Hr_System_Demo_3
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowSpecificOrigins", policy =>
-                    policy.WithOrigins("http://localhost:3000", "http://82.112.254.244:8011")
+                    policy.WithOrigins("http://localhost:3000", "http://82.112.254.244:8011", "http://192.168.100.44:8081")
                           .AllowAnyMethod()
                           .AllowAnyHeader()
                           .AllowCredentials()); // Use only if sending cookies/auth headers
