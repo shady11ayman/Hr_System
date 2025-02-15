@@ -48,7 +48,7 @@ namespace Hr_System_Demo_3.Controllers
             });*/
 
             [HttpPost("add-employee-application")]
-        //  [Authorize(Roles = "HrEmp, SuperHr")]
+            [Authorize(Roles = "HrEmp, SuperHr")]
             [AllowAnonymous]
             public async Task<ActionResult> AddEmployeeApplication(HrRequest request)
             {
@@ -85,7 +85,7 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpPost("employee-application-action")]
-        //  [Authorize(Roles = "SuperHr")]
+         [Authorize(Roles = "SuperHr")]
         [AllowAnonymous]
         public async Task<ActionResult> EmployeeApplicationAction(int applicationId, bool isApproved, string? rejectReason = null)
         {
@@ -301,7 +301,7 @@ namespace Hr_System_Demo_3.Controllers
         }
 
 
-      /*  [HttpPost("scan")]
+        [HttpPost("scan")]
         [AllowAnonymous]
         public async Task<ActionResult> Scan(UserIdDto request)
         {
@@ -411,6 +411,6 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         
-        */
+        
     }
 }

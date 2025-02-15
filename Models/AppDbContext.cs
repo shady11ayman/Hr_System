@@ -22,7 +22,7 @@ namespace Hr_System_Demo_3
         public DbSet<LeaveRequest> LeaveRequests { get; set; }
         public DbSet<EmployeeApplication> EmployeeApplications { get; set; }
         public DbSet<ScanRecord> ScanRecords { get; set; }
-     //   public DbSet<Deduction> Deductions { get; set; }
+        public DbSet<Deduction> Deductions { get; set; }
 
 
 
@@ -32,7 +32,7 @@ namespace Hr_System_Demo_3
             base.OnModelCreating(modelBuilder);
             modelBuilder.Entity<Employee>().ToTable("Employees").HasKey(u => u.empId);
             modelBuilder.Entity<Department>().ToTable("Departments").HasKey(d => d.deptId);
-          //  modelBuilder.Entity<Deduction>().ToTable("Deductions").HasKey(d => d.Id);
+           modelBuilder.Entity<Deduction>().ToTable("Deductions").HasKey(d => d.Id);
 
             modelBuilder.Entity<Employee>()
             .HasOne(e => e.Department)
