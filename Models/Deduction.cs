@@ -8,8 +8,13 @@
         public DateTime Date { get; set; }
         public DateTime? EntryTime { get; set; }
         public DateTime? ExitTime { get; set; }
-        public string Reason { get; set; } // "Late Arrival", "Early Leave", or both
-        public decimal PenaltyAmount { get; set; } // Deduction amount
+        public string Reason { get; set; } 
+        public decimal PenaltyAmount { get; set; }
+        public Manager? Manager { get; set; }
+        public Guid? ManagerId { get; set; }
+        public Guid HrId { get; set; }
+        public DeductionState state { get; set; }
+        public bool isFinalized { get; set; }
 
         public Employee Employee { get; set; }
     }

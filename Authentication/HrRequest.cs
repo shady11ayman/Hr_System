@@ -9,8 +9,15 @@ namespace Hr_System_Demo_3.Authentication
         public string Email { get; set; }
         public Guid deptId { get; set; }
         public string Role { get; set; }
-        //  public Guid Hr_Id { get; set; }
+        public Guid Hr_Id { get; set; }
         public int ShiftTypereq { get; set; }
-        
+        public string PhoneNumber { get; set; }
+
+        // New fields:
+        public decimal Salary { get; set; }  // Gross salary
+        public decimal InsuranceRate { get; set; }  // Percentage for insurance deduction
+        public decimal TaxRate { get; set; }  // Percentage for tax deduction
+        public decimal MedicalInsuranceRate { get; set; }  // Percentage for medical insurance
+        public Guid ManagerId { get; set; }  // General Manager for approval
     }
 }

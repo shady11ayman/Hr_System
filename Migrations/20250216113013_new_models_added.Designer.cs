@@ -4,6 +4,7 @@ using Hr_System_Demo_3;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Hr_System_Demo_3.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250216113013_new_models_added")]
+    partial class new_models_added
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -135,18 +138,11 @@ namespace Hr_System_Demo_3.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("ManagerId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("deptName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("deptId");
-
-                    b.HasIndex("ManagerId")
-                        .IsUnique()
-                        .HasFilter("[ManagerId] IS NOT NULL");
 
                     b.ToTable("Departments", (string)null);
                 });
@@ -157,36 +153,11 @@ namespace Hr_System_Demo_3.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Address")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("ContractDuration")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("ContractEnd")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("ContractStart")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("ContractTypeId")
-                        .HasColumnType("int");
-
                     b.Property<Guid>("Hr_Id")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("LeaveTypeId")
-                        .HasColumnType("int");
-
                     b.Property<Guid?>("ManagerId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("PhoneNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("PositionId")
-                        .HasColumnType("int");
 
                     b.Property<string>("Role")
                         .IsRequired()
@@ -196,13 +167,6 @@ namespace Hr_System_Demo_3.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(0);
-
-                    b.Property<double>("WorkHours")
-                        .HasColumnType("float");
-
-                    b.PrimitiveCollection<string>("WorkingDays")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("deptId")
                         .HasColumnType("uniqueidentifier");
@@ -224,13 +188,7 @@ namespace Hr_System_Demo_3.Migrations
 
                     b.HasKey("empId");
 
-                    b.HasIndex("ContractTypeId");
-
-                    b.HasIndex("LeaveTypeId");
-
                     b.HasIndex("ManagerId");
-
-                    b.HasIndex("PositionId");
 
                     b.HasIndex("ShiftTypeId");
 
@@ -247,13 +205,6 @@ namespace Hr_System_Demo_3.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("ApprovalStatus")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -261,20 +212,7 @@ namespace Hr_System_Demo_3.Migrations
                     b.Property<Guid>("HrId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<decimal>("InsuranceRate")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<Guid?>("ManagerId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("MedicalInsuranceRate")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<string>("PasswordHash")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PhoneNumber")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -285,18 +223,12 @@ namespace Hr_System_Demo_3.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal>("Salary")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<int>("ShiftTypeId")
                         .HasColumnType("int");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("TaxRate")
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("UserName")
                         .IsRequired()
@@ -307,13 +239,7 @@ namespace Hr_System_Demo_3.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("HrId");
-
-                    b.HasIndex("ManagerId");
-
                     b.HasIndex("ShiftTypeId");
-
-                    b.HasIndex("deptId");
 
                     b.ToTable("EmployeeApplications");
                 });
@@ -324,29 +250,20 @@ namespace Hr_System_Demo_3.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Address")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<DateTime?>("ContractEnd")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("ContractStart")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("ContractTypeId")
+                    b.Property<int?>("ContractTypeId")
                         .HasColumnType("int");
 
-                    b.Property<Guid?>("DepartmentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("DirectManagerId")
+                    b.Property<Guid>("DepartmentdeptId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("Hr_Id")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("LeaveTypeId")
-                        .HasColumnType("int");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -355,26 +272,23 @@ namespace Hr_System_Demo_3.Migrations
                     b.Property<int?>("PhoneNumber")
                         .HasColumnType("int");
 
-                    b.Property<int>("PositionId")
+                    b.Property<int?>("PositionId")
                         .HasColumnType("int");
 
-                    b.Property<int>("ShiftTypeId")
+                    b.Property<int?>("ShiftTypeId")
                         .HasColumnType("int");
 
                     b.Property<double?>("WorkHours")
                         .HasColumnType("float");
 
-                    b.PrimitiveCollection<string>("WorkingDays")
-                        .IsRequired()
+                    b.Property<string>("address")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("ManagerId");
 
                     b.HasIndex("ContractTypeId");
 
-                    b.HasIndex("DirectManagerId");
-
-                    b.HasIndex("LeaveTypeId");
+                    b.HasIndex("DepartmentdeptId");
 
                     b.HasIndex("PositionId");
 
@@ -542,40 +456,12 @@ namespace Hr_System_Demo_3.Migrations
                     b.Navigation("Manager");
                 });
 
-            modelBuilder.Entity("Hr_System_Demo_3.Models.Department", b =>
-                {
-                    b.HasOne("Hr_System_Demo_3.Models.Manager", "Manager")
-                        .WithOne("Department")
-                        .HasForeignKey("Hr_System_Demo_3.Models.Department", "ManagerId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Manager");
-                });
-
             modelBuilder.Entity("Hr_System_Demo_3.Models.Employee", b =>
                 {
-                    b.HasOne("Hr_System_Demo_3.lookups.ContractType", "ContractType")
-                        .WithMany()
-                        .HasForeignKey("ContractTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Hr_System_Demo_3.lookups.LeaveType", "LeaveType")
-                        .WithMany()
-                        .HasForeignKey("LeaveTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("Hr_System_Demo_3.Models.Manager", "Manager")
                         .WithMany("Employees")
                         .HasForeignKey("ManagerId")
                         .OnDelete(DeleteBehavior.NoAction);
-
-                    b.HasOne("Hr_System_Demo_3.lookups.Position", "Position")
-                        .WithMany()
-                        .HasForeignKey("PositionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.HasOne("Hr_System_Demo_3.lookups.ShiftType", "ShiftType")
                         .WithMany("Employees")
@@ -586,51 +472,23 @@ namespace Hr_System_Demo_3.Migrations
                     b.HasOne("Hr_System_Demo_3.Models.Department", "Department")
                         .WithMany("Employees")
                         .HasForeignKey("deptId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("ContractType");
 
                     b.Navigation("Department");
 
-                    b.Navigation("LeaveType");
-
                     b.Navigation("Manager");
-
-                    b.Navigation("Position");
 
                     b.Navigation("ShiftType");
                 });
 
             modelBuilder.Entity("Hr_System_Demo_3.Models.EmployeeApplication", b =>
                 {
-                    b.HasOne("Hr_System_Demo_3.Models.Manager", "HrManager")
-                        .WithMany()
-                        .HasForeignKey("HrId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Hr_System_Demo_3.Models.Manager", "Manager")
-                        .WithMany()
-                        .HasForeignKey("ManagerId");
-
                     b.HasOne("Hr_System_Demo_3.lookups.ShiftType", "ShiftType")
                         .WithMany()
                         .HasForeignKey("ShiftTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("Hr_System_Demo_3.Models.Department", "Department")
-                        .WithMany()
-                        .HasForeignKey("deptId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Department");
-
-                    b.Navigation("HrManager");
-
-                    b.Navigation("Manager");
 
                     b.Navigation("ShiftType");
                 });
@@ -639,38 +497,25 @@ namespace Hr_System_Demo_3.Migrations
                 {
                     b.HasOne("Hr_System_Demo_3.lookups.ContractType", "ContractType")
                         .WithMany()
-                        .HasForeignKey("ContractTypeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .HasForeignKey("ContractTypeId");
 
-                    b.HasOne("Hr_System_Demo_3.Models.Manager", "DirectManager")
+                    b.HasOne("Hr_System_Demo_3.Models.Department", "Department")
                         .WithMany()
-                        .HasForeignKey("DirectManagerId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Hr_System_Demo_3.lookups.LeaveType", "LeaveType")
-                        .WithMany()
-                        .HasForeignKey("LeaveTypeId")
+                        .HasForeignKey("DepartmentdeptId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Hr_System_Demo_3.lookups.Position", "Position")
                         .WithMany()
-                        .HasForeignKey("PositionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .HasForeignKey("PositionId");
 
                     b.HasOne("Hr_System_Demo_3.lookups.ShiftType", "ShiftType")
                         .WithMany()
-                        .HasForeignKey("ShiftTypeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .HasForeignKey("ShiftTypeId");
 
                     b.Navigation("ContractType");
 
-                    b.Navigation("DirectManager");
-
-                    b.Navigation("LeaveType");
+                    b.Navigation("Department");
 
                     b.Navigation("Position");
 
@@ -714,8 +559,6 @@ namespace Hr_System_Demo_3.Migrations
 
             modelBuilder.Entity("Hr_System_Demo_3.Models.Manager", b =>
                 {
-                    b.Navigation("Department");
-
                     b.Navigation("Employees");
                 });
 

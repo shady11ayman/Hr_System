@@ -23,6 +23,9 @@ namespace Hr_System_Demo_3
         public DbSet<EmployeeApplication> EmployeeApplications { get; set; }
         public DbSet<ScanRecord> ScanRecords { get; set; }
         public DbSet<Deduction> Deductions { get; set; }
+        public DbSet<Manager> Managers { get; set; }
+        public DbSet<SalaryAfterDeductions> SalaryAfterDeductions { get; set; }
+
 
 
 
@@ -37,7 +40,15 @@ namespace Hr_System_Demo_3
             modelBuilder.Entity<Employee>()
             .HasOne(e => e.Department)
             .WithMany(d => d.Employees)
-            .HasForeignKey(e => e.deptId);
+            .HasForeignKey(e => e.deptId).OnDelete(DeleteBehavior.NoAction);
+
+       
+
+            modelBuilder.Entity<Employee>()
+                .HasOne(m=> m.Manager)
+                .WithMany(m=> m.Employees)
+                .HasForeignKey(m=>m.ManagerId)
+                .OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<LeaveRequest>()
           .HasOne(lr => lr.Employee)
@@ -48,6 +59,64 @@ namespace Hr_System_Demo_3
     .HasOne(e => e.ShiftType)
     .WithMany(st => st.Employees)
     .HasForeignKey(e => e.ShiftTypeId);
+
+            modelBuilder.Entity<Deduction>()
+        .HasOne(d => d.Employee)
+        .WithMany()
+        .HasForeignKey(d => d.EmployeeId)
+        .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<Deduction>()
+     .HasOne(d => d.Manager)
+     .WithMany()
+     .HasForeignKey(d => d.ManagerId)
+     .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<SalaryAfterDeductions>()
+       .HasOne(s => s.Employee)
+       .WithMany()
+       .HasForeignKey(s => s.empId)
+       .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<SalaryAfterDeductions>()
+                .HasOne(s => s.Deduction)
+                .WithMany()
+                .HasForeignKey(s => s.DeductionId);
+
+            modelBuilder.Entity<Department>()
+        .HasOne(d => d.Manager)
+        .WithOne(m => m.Department)
+        .HasForeignKey<Department>(d => d.ManagerId) // ✅ FK in Department table
+        .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Manager>()
+        .HasOne(m => m.ShiftType)
+        .WithMany()
+        .HasForeignKey(m => m.ShiftTypeId)
+        .OnDelete(DeleteBehavior.Restrict); // ✅ Prevents multiple cascade paths
+
+            // Manager ↔ ContractType (One-to-Many)
+            modelBuilder.Entity<Manager>()
+                .HasOne(m => m.ContractType)
+                .WithMany()
+                .HasForeignKey(m => m.ContractTypeId)
+                .OnDelete(DeleteBehavior.Restrict); // ✅ Prevents cascade path issues
+
+            // Manager ↔ Position (One-to-Many)
+            modelBuilder.Entity<Manager>()
+                .HasOne(m => m.Position)
+                .WithMany()
+                .HasForeignKey(m => m.PositionId)
+                .OnDelete(DeleteBehavior.Restrict); // ✅ Prevents issues
+
+            // Manager ↔ Direct Manager (Self-Referencing)
+            modelBuilder.Entity<Manager>()
+                .HasOne(m => m.DirectManager)
+                .WithMany()
+                .HasForeignKey(m => m.DirectManagerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+
 
             modelBuilder.Entity<Employee>().Property(e => e.ShiftTypeId).HasDefaultValue(0);
 
