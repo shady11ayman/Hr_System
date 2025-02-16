@@ -21,31 +21,59 @@ namespace Hr_System_Demo_3.Controllers
     {
         private readonly PasswordHasher<Employee> _passwordHasher = new();
 
-        /* [HttpPost("add-employee")]
-         [Authorize(Roles = "HrEmp, SuperHr")]
-         public async Task<ActionResult> AddEmployee(HrRequest request)
-         {
-             var hrId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-             if (hrId == null) return Unauthorized("Invalid HR credentials");
+        [HttpPost("add-employee")]
+        [AllowAnonymous]
+        public async Task<ActionResult> AddEmployee(HrRequest request)
+        {
+            if (request == null || string.IsNullOrEmpty(request.UserName) || string.IsNullOrEmpty(request.Email))
+            {
+                return BadRequest("Invalid request data");
+            }
 
-             var newEmployee = new Employee
-             {
-                 empName = request.UserName,
-                 empEmail = request.Email,
-                 empPassword = _passwordHasher.HashPassword(null, request.Password),
-                 deptId = request.deptId,
-                 Hr_Id = Guid.Parse(hrId),
-                 Role = request.Role
-             };
+            // Calculate salary deductions
+            decimal totalDeductions = request.Salary * (request.InsuranceRate + request.TaxRate + request.MedicalInsuranceRate) / 100;
+            decimal netSalary = request.Salary - totalDeductions;
 
-             DbContext.Employees.Add(newEmployee);
-             await DbContext.SaveChangesAsync();
-             return Ok(new
-             {
-                 Message = "Employee added successfully",
-                 EmployeeId = newEmployee.empId,
-                 HrId = hrId
-             });*/
+            // Ensure required properties exist
+            if (request.ShiftTypereq == 0 || request.Hr_Id == Guid.Empty)
+            {
+                return BadRequest("Invalid ShiftTypeId or HrId");
+            }
+
+            var newEmployee = new Employee
+            {
+                empId = Guid.NewGuid(),
+                empName = request.UserName,
+                empEmail = request.Email,
+                empPassword = _passwordHasher.HashPassword(null, request.Password),
+                deptId = request.deptId,
+                Hr_Id = request.Hr_Id,
+                Role = request.Role,
+                ManagerId = request.ManagerId ,
+                ShiftTypeId = request.ShiftTypereq,
+                PhoneNumber = request.PhoneNumber,
+
+                PositionId = 1, // ⚠️ FIXED: Ensure PositionId is assigned correctly
+                ContractTypeId = 1,
+                LeaveTypeId = 1,
+                ContractStart = DateTime.UtcNow,
+                ContractEnd = DateTime.UtcNow.AddYears(1),
+                ContractDuration = 12,
+                salary = (double)request.Salary,
+                WorkHours = 40,
+                WorkingDays = new List<string> { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday" }
+            };
+
+            DbContext.Employees.Add(newEmployee);
+            await DbContext.SaveChangesAsync();
+
+            return Ok(new
+            {
+                Message = "Employee added successfully",
+                EmployeeId = newEmployee.empId
+            });
+        }
+
 
         [HttpPost("add-manager")]
         public async Task<IActionResult> AddManager([FromBody] ManagerDto managerDto)
