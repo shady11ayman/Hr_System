@@ -9,7 +9,7 @@ namespace Hr_System_Demo_3.Models
         public Guid ManagerId { get; set; }
         public string Name { get; set; }
         public string? Address { get; set; }
-        public Guid Hr_Id { get; set; }
+        public Guid Hr_Id { get; set; } //hr_id no 
         public int? PhoneNumber { get; set; }
         public int PositionId { get; set; }
 

@@ -138,7 +138,7 @@ namespace Hr_System_Demo_3.Controllers
 
 
         [HttpPost("add-employee-application")]
-       // [Authorize(Roles = "HrEmp, SuperHr")]
+        [Authorize(Roles = "HrEmp, SuperHr")]
         [AllowAnonymous]
         public async Task<ActionResult> AddEmployeeApplication(HrRequest request)
         {
@@ -147,7 +147,7 @@ namespace Hr_System_Demo_3.Controllers
                 return BadRequest("Invalid request data");
             }
 
-            // Calculate salary deductions
+            //Calculate salary deductions
             decimal totalDeductions = request.Salary * (request.InsuranceRate + request.TaxRate + request.MedicalInsuranceRate) / 100;
             decimal netSalary = request.Salary - totalDeductions;
 
@@ -190,7 +190,7 @@ namespace Hr_System_Demo_3.Controllers
         }
 
             [HttpPost("employee-application-action")]
-        // [Authorize(Roles = "Manager")]
+           [Authorize(Roles = "Manager")]
            [AllowAnonymous]
             public async Task<ActionResult> EmployeeApplicationAction(int applicationId, bool isApproved, string PhoneNumber, string? rejectReason = null)
             {
@@ -298,7 +298,7 @@ namespace Hr_System_Demo_3.Controllers
             });
         }
         [HttpPost("apply-leave-request")]
-        // [Authorize(Roles = "User, HrEmp, SuperHr")]
+         [Authorize(Roles = "User, HrEmp, SuperHr")]
         [AllowAnonymous]
         public async Task<ActionResult> ApplyLeaveRequest([FromBody] ApplyLeaveRequestDto request)
         {
