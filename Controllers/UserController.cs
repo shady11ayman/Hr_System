@@ -300,10 +300,15 @@ namespace Hr_System_Demo_3.Controllers
             }
 
         [HttpPost("login")]
-        [Authorize (Roles="Admin")]
+      [AllowAnonymous]
+      //  [Authorize(Roles ="Admin,User")]
         public ActionResult<string> Login(AuthenticateRequest request)
         {
-            var user = DbContext.Set<Employee>().FirstOrDefault(x => x.empEmail == request.Email);
+            // Include the Position when querying the Employee
+            var user = DbContext.Employees
+                .Include(e => e.Position)
+                .FirstOrDefault(x => x.empEmail == request.Email);
+
             if (user == null) return Unauthorized("Invalid email or password");
 
             var passwordVerification = _passwordHasher.VerifyHashedPassword(null, user.empPassword, request.Password);
@@ -338,7 +343,8 @@ namespace Hr_System_Demo_3.Controllers
             {
                 Token = accessToken,
                 UserId = user.empId,
-                Role = user.Role
+                Role = user.Role,
+                Position = user.Position?.Name // Assuming Position has a Name property
             });
         }
 
