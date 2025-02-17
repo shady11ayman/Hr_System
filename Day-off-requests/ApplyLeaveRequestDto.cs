@@ -5,5 +5,6 @@
         public string LeaveType { get; set; }
         public DateTime LeaveFrom { get; set; }
         public DateTime LeaveTo { get; set; }
+        public string comment { get; set; }=string.Empty;
     }
 }

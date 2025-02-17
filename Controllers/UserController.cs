@@ -373,7 +373,8 @@ namespace Hr_System_Demo_3.Controllers
                 workingDaysOff = totalDaysOff.ToString(), // Assuming all days are working days
                 TotalDaysOff = totalDaysOff.ToString(),
                 Status = LeaveStatus.Pending,
-                Action = "Pending"
+                Action = "Pending",
+                comment=request.comment,
             };
 
             DbContext.LeaveRequests.Add(leaveRequest);
