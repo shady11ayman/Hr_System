@@ -22,6 +22,7 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpPost("positions")]
+        [Authorize (Roles= "Admin")]
         public async Task<ActionResult> AddPosition([FromBody] Position position)
         {
             if (string.IsNullOrWhiteSpace(position.Name))
@@ -33,6 +34,8 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpPut("positions/{id}")]
+        [Authorize(Roles = "Admin")]
+
         public async Task<ActionResult> UpdatePosition(int id, [FromBody] Position position)
         {
             var existing = await DbContext.Positions.FindAsync(id);
@@ -44,6 +47,8 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpDelete("positions/{id}")]
+        [Authorize(Roles = "Admin")]
+
         public async Task<ActionResult> DeletePosition(int id)
         {
             var existing = await DbContext.Positions.FindAsync(id);
@@ -61,6 +66,8 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpPost("shift-types")]
+        [Authorize(Roles = "Admin")]
+
         public async Task<ActionResult> AddShiftType([FromBody] ShiftType shiftType)
         {
             if (string.IsNullOrWhiteSpace(shiftType.Name))
@@ -72,6 +79,8 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpPut("shift-types/{id}")]
+        [Authorize(Roles = "Admin")]
+
         public async Task<ActionResult> UpdateShiftType(int id, [FromBody] ShiftType shiftType)
         {
             var existing = await DbContext.ShiftTypes.FindAsync(id);
@@ -85,6 +94,8 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpDelete("shift-types/{id}")]
+        [Authorize(Roles = "Admin")]
+
         public async Task<ActionResult> DeleteShiftType(int id)
         {
             var existing = await DbContext.ShiftTypes.FindAsync(id);
@@ -106,7 +117,7 @@ namespace Hr_System_Demo_3.Controllers
 
 
         [HttpPost("add-department")]
-        [Authorize(Roles = "HrEmp, SuperHr")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> AddDepartment([FromBody] Department department)
         {
             if (string.IsNullOrEmpty(department.deptName))
@@ -127,7 +138,7 @@ namespace Hr_System_Demo_3.Controllers
 
 
         [HttpPut("update-department/{id}")]
-        [Authorize(Roles = "HrEmp, SuperHr")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> UpdateDepartment(Guid id, [FromBody] Department department)
         {
             var existingDepartment = await DbContext.Departments.FindAsync(id);
@@ -145,7 +156,7 @@ namespace Hr_System_Demo_3.Controllers
 
 
         [HttpDelete("delete-department/{id}")]
-        [Authorize(Roles = "SuperHr")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> DeleteDepartment(Guid id)
         {
             var department = await DbContext.Departments.Include(d => d.Employees).FirstOrDefaultAsync(d => d.deptId == id);
@@ -168,6 +179,8 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpPost("contract-types")]
+        [Authorize(Roles = "Admin")]
+
         public async Task<ActionResult> AddContractType([FromBody] ContractType contractType)
         {
             if (string.IsNullOrWhiteSpace(contractType.Name))
@@ -179,6 +192,8 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpPut("contract-types/{id}")]
+        [Authorize(Roles = "Admin")]
+
         public async Task<ActionResult> UpdateContractType(int id, [FromBody] ContractType contractType)
         {
             var existing = await DbContext.ContractTypes.FindAsync(id);
@@ -190,6 +205,8 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpDelete("contract-types/{id}")]
+        [Authorize(Roles = "Admin")]
+
         public async Task<ActionResult> DeleteContractType(int id)
         {
             var existing = await DbContext.ContractTypes.FindAsync(id);
@@ -207,6 +224,8 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpPost("leave-types")]
+        [Authorize(Roles = "Admin")]
+
         public async Task<ActionResult> AddLeaveType([FromBody] LeaveType leaveType)
         {
             if (string.IsNullOrWhiteSpace(leaveType.Name))
@@ -218,6 +237,8 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpPut("leave-types/{id}")]
+        [Authorize(Roles = "Admin")]
+
         public async Task<ActionResult> UpdateLeaveType(int id, [FromBody] LeaveType leaveType)
         {
             var existing = await DbContext.LeaveTypes.FindAsync(id);
@@ -229,6 +250,8 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpDelete("leave-types/{id}")]
+        [Authorize(Roles = "Admin")]
+
         public async Task<ActionResult> DeleteLeaveType(int id)
         {
             var existing = await DbContext.LeaveTypes.FindAsync(id);

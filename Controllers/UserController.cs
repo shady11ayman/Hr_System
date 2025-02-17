@@ -22,7 +22,7 @@ namespace Hr_System_Demo_3.Controllers
         private readonly PasswordHasher<Employee> _passwordHasher = new();
 
         [HttpPost("add-employee")]
-        [AllowAnonymous]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> AddEmployee(HrRequest request)
         {
             if (request == null || string.IsNullOrEmpty(request.UserName) || string.IsNullOrEmpty(request.Email))
@@ -30,14 +30,21 @@ namespace Hr_System_Demo_3.Controllers
                 return BadRequest("Invalid request data");
             }
 
+            // Extract Hr_Id from the token
+            var hrIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(hrIdClaim))
+            {
+                return Unauthorized("Invalid HR credentials");
+            }
+
             // Calculate salary deductions
             decimal totalDeductions = request.Salary * (request.InsuranceRate + request.TaxRate + request.MedicalInsuranceRate) / 100;
             decimal netSalary = request.Salary - totalDeductions;
 
             // Ensure required properties exist
-            if (request.ShiftTypereq == 0 || request.Hr_Id == Guid.Empty)
+            if (request.ShiftTypereq == 0)
             {
-                return BadRequest("Invalid ShiftTypeId or HrId");
+                return BadRequest("Invalid ShiftTypeId");
             }
 
             var newEmployee = new Employee
@@ -47,13 +54,13 @@ namespace Hr_System_Demo_3.Controllers
                 empEmail = request.Email,
                 empPassword = _passwordHasher.HashPassword(null, request.Password),
                 deptId = request.deptId,
-                Hr_Id = request.Hr_Id,
+                Hr_Id = Guid.Parse(hrIdClaim), // Use Hr_Id from token
                 Role = request.Role,
-                ManagerId = request.ManagerId ,
+                ManagerId = request.ManagerId,
                 ShiftTypeId = request.ShiftTypereq,
                 PhoneNumber = request.PhoneNumber,
 
-                PositionId = 1, // ⚠️ FIXED: Ensure PositionId is assigned correctly
+                PositionId = 1, // Ensure PositionId is assigned correctly
                 ContractTypeId = 1,
                 LeaveTypeId = 1,
                 ContractStart = DateTime.UtcNow,
@@ -76,11 +83,19 @@ namespace Hr_System_Demo_3.Controllers
 
 
         [HttpPost("add-manager")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> AddManager([FromBody] ManagerDto managerDto)
         {
             if (managerDto == null)
             {
                 return BadRequest("Invalid manager data.");
+            }
+
+            // Extract Hr_Id from the token
+            var hrIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(hrIdClaim))
+            {
+                return Unauthorized("Invalid HR credentials");
             }
 
             // Validate Foreign Keys
@@ -114,7 +129,7 @@ namespace Hr_System_Demo_3.Controllers
                 ManagerId = Guid.NewGuid(),
                 Name = managerDto.Name,
                 Address = managerDto.Address,
-                Hr_Id = managerDto.Hr_Id,
+                Hr_Id = Guid.Parse(hrIdClaim), // Use Hr_Id from token
                 PhoneNumber = managerDto.PhoneNumber,
                 PositionId = managerDto.PositionId,
                 DepartmentId = managerDto.DepartmentId,
@@ -166,8 +181,7 @@ namespace Hr_System_Demo_3.Controllers
 
 
         [HttpPost("add-employee-application")]
-        [Authorize(Roles = "HrEmp, SuperHr")]
-        [AllowAnonymous]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> AddEmployeeApplication(HrRequest request)
         {
             if (request == null || string.IsNullOrEmpty(request.UserName) || string.IsNullOrEmpty(request.Email))
@@ -175,7 +189,14 @@ namespace Hr_System_Demo_3.Controllers
                 return BadRequest("Invalid request data");
             }
 
-            //Calculate salary deductions
+            // Extract Hr_Id from the token
+            var hrIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(hrIdClaim))
+            {
+                return Unauthorized("Invalid HR credentials");
+            }
+
+            // Calculate salary deductions
             decimal totalDeductions = request.Salary * (request.InsuranceRate + request.TaxRate + request.MedicalInsuranceRate) / 100;
             decimal netSalary = request.Salary - totalDeductions;
 
@@ -185,7 +206,7 @@ namespace Hr_System_Demo_3.Controllers
                 Email = request.Email,
                 PasswordHash = _passwordHasher.HashPassword(null, request.Password),
                 deptId = request.deptId,
-                HrId = request.Hr_Id,
+                HrId = Guid.Parse(hrIdClaim), // Use Hr_Id from token
                 Role = request.Role,
                 Status = "Pending",
                 ShiftTypeId = request.ShiftTypereq,
@@ -196,7 +217,6 @@ namespace Hr_System_Demo_3.Controllers
                 ApprovalStatus = "PendingApproval",
                 ManagerId = request.ManagerId,
                 PhoneNumber = request.PhoneNumber,
-                
             };
 
             DbContext.EmployeeApplications.Add(newApplication);
@@ -205,8 +225,8 @@ namespace Hr_System_Demo_3.Controllers
             return Ok(new { Message = "Employee application submitted successfully and awaiting General Manager approval", ApplicationId = newApplication.Id });
         }
 
-        [HttpGet("employee-applications")]
-        [Authorize(Roles = "SuperHr")]
+            [HttpGet("employee-applications")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<IEnumerable<EmployeeApplication>>> GetEmployeeApplications()
         {
             var applications = await DbContext.EmployeeApplications
@@ -218,7 +238,7 @@ namespace Hr_System_Demo_3.Controllers
         }
 
             [HttpPost("employee-application-action")]
-           [Authorize(Roles = "Manager")]
+           [Authorize(Roles = "Admin")]
            [AllowAnonymous]
             public async Task<ActionResult> EmployeeApplicationAction(int applicationId, bool isApproved, string PhoneNumber, string? rejectReason = null)
             {
@@ -279,8 +299,8 @@ namespace Hr_System_Demo_3.Controllers
                 });
             }
 
-            [HttpPost("login")]
-        [AllowAnonymous]
+        [HttpPost("login")]
+        [Authorize (Roles="Admin")]
         public ActionResult<string> Login(AuthenticateRequest request)
         {
             var user = DbContext.Set<Employee>().FirstOrDefault(x => x.empEmail == request.Email);
@@ -293,19 +313,16 @@ namespace Hr_System_Demo_3.Controllers
             if (string.IsNullOrEmpty(user.Role))
                 return Unauthorized("User does not have a role assigned.");
 
-          /*  bool isSuperHr = user.Role == "SuperHr";
-            if (!isSuperHr) return Unauthorized();*/
-
             var tokenHandler = new JwtSecurityTokenHandler();
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new[]
                 {
-                    new Claim(ClaimTypes.NameIdentifier, user.empId.ToString()),
-                    new Claim(ClaimTypes.Name, user.empName),
-                    new Claim(ClaimTypes.Email, user.empEmail),
-                    new Claim(ClaimTypes.Role, user.Role)
-                }, authenticationType: "Bearer"),
+            new Claim(ClaimTypes.NameIdentifier, user.empId.ToString()),
+            new Claim(ClaimTypes.Name, user.empName),
+            new Claim(ClaimTypes.Email, user.empEmail),
+            new Claim(ClaimTypes.Role, user.Role) // Ensure role is included
+        }, authenticationType: "Bearer"),
                 Issuer = jwtOptions.Issuer,
                 Audience = jwtOptions.Audience,
                 Expires = DateTime.UtcNow.AddMinutes(jwtOptions.Lifetime),
@@ -321,13 +338,12 @@ namespace Hr_System_Demo_3.Controllers
             {
                 Token = accessToken,
                 UserId = user.empId,
-                Role = user.Role,
-               // IsSuperHr = isSuperHr
+                Role = user.Role
             });
         }
+
         [HttpPost("apply-leave-request")]
-         [Authorize(Roles = "User, HrEmp, SuperHr")]
-        [AllowAnonymous]
+        [Authorize(Roles = "Admin,User")]
         public async Task<ActionResult> ApplyLeaveRequest([FromBody] ApplyLeaveRequestDto request)
         {
             var employeeIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -361,7 +377,7 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpGet("leave-requests")]
-        [Authorize(Roles = "HrEmp, SuperHr")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<IEnumerable<LeaveRequest>>> GetAllLeaveRequests()
         {
             var leaveRequests = await DbContext.LeaveRequests
@@ -372,7 +388,7 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpGet("my-leave-requests")]
-        [Authorize(Roles = "User, HrEmp, SuperHr")]
+        [Authorize(Roles = "Admin,User")]
         public async Task<ActionResult<IEnumerable<LeaveRequest>>> GetMyLeaveRequests()
         {
             var employeeIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -390,24 +406,45 @@ namespace Hr_System_Demo_3.Controllers
             return Ok(myLeaveRequests);
         }
 
-        [HttpGet("employee-leave-requests/{employeeId}")]
-        [Authorize(Roles = "HrEmp, SuperHr")]
-        public async Task<ActionResult<IEnumerable<LeaveRequest>>> GetEmployeeLeaveRequests(Guid employeeId)
+        [HttpGet("hr-employee-leave-requests")]
+        [Authorize(Roles = "HrEmp, Admin")]
+        public async Task<ActionResult<IEnumerable<LeaveRequest>>> GetHrEmployeeLeaveRequests()
         {
+            // Extract HR ID from the token
+            var hrIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(hrIdClaim))
+            {
+                return Unauthorized("Invalid HR credentials");
+            }
+
+            var hrId = Guid.Parse(hrIdClaim);
+
+            // Find all employees added by this HR
+            var employeeIds = await DbContext.Employees
+                .Where(e => e.Hr_Id == hrId)
+                .Select(e => e.empId)
+                .ToListAsync();
+
+            if (!employeeIds.Any())
+            {
+                return NotFound("No employees found for this HR.");
+            }
+
+            // Get all leave requests for these employees
             var leaveRequests = await DbContext.LeaveRequests
-                .Where(lr => lr.EmployeeId == employeeId && lr.Status == LeaveStatus.Pending)
+                .Where(lr => employeeIds.Contains(lr.EmployeeId))
                 .ToListAsync();
 
             if (!leaveRequests.Any())
             {
-                return NotFound("No pending leave requests found for this employee.");
+                return NotFound("No leave requests found for employees assigned by this HR.");
             }
 
             return Ok(leaveRequests);
         }
 
         [HttpPost("leave-request-action")]
-        [Authorize(Roles = "HrEmp, SuperHr")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> LeaveRequestAction(int leaveRequestId, bool isApproved, string? rejectReason = null)
         {
             var leaveRequest = await DbContext.LeaveRequests.FindAsync(leaveRequestId);
@@ -462,10 +499,16 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpPost("scan")]
-        [AllowAnonymous]
-        public async Task<ActionResult> Scan(UserIdDto request)
+        [Authorize(Roles = "Admin,User")]
+        public async Task<ActionResult> Scan()
         {
-            var userId = request.UserId;
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim))
+            {
+                return Unauthorized("Invalid user credentials");
+            }
+
+            var userId = Guid.Parse(userIdClaim);
             var employee = await DbContext.Employees
                 .Include(e => e.ShiftType)
                 .FirstOrDefaultAsync(e => e.empId == userId);
@@ -531,7 +574,7 @@ namespace Hr_System_Demo_3.Controllers
                         var earlyLeaveDuration = shiftEnd - currentTime.TimeOfDay;
                         var deductionAmount = CalculateDeduction(earlyLeaveDuration, employee.salary);
 
-                        if (deductionAmount > 0)
+                        if (deductionAmount > 0)        
                         {
                             var deduction = new Deduction
                             {
@@ -558,7 +601,7 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpPost("approve-deduction")]
-        [Authorize(Roles = "Manager")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> ApproveDeduction(int deductionId)
         {
             var deduction = await DbContext.Deductions.FindAsync(deductionId);
@@ -574,7 +617,7 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpPost("finalize-deduction")]
-        [Authorize(Roles = "SuperHr")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> FinalizeDeduction(int deductionId, bool isApproved, string? rejectReason = null)
         {
             var deduction = await DbContext.Deductions.FindAsync(deductionId);
@@ -604,7 +647,7 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpGet("deductions/{employeeId}")]
-        [Authorize(Roles = "HrEmp, SuperHr")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<IEnumerable<Deduction>>> GetEmployeeDeductions(Guid employeeId)
         {
             var deductions = await DbContext.Deductions
@@ -616,7 +659,63 @@ namespace Hr_System_Demo_3.Controllers
             return Ok(deductions);
         }
 
+        [HttpGet("employees-by-hr")]
+        [Authorize(Roles = "HrEmp, Admin")]
+        public async Task<ActionResult<IEnumerable<Employee>>> GetEmployeesByHr()
+        {
+            var hrIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(hrIdClaim))
+            {
+                return Unauthorized("Invalid HR credentials");
+            }
 
+            var hrId = Guid.Parse(hrIdClaim);
+
+            var employees = await DbContext.Employees
+                .Where(e => e.Hr_Id == hrId)
+                .ToListAsync();
+
+            if (!employees.Any())
+            {
+                return NotFound("No employees found for this HR.");
+            }
+
+            return Ok(employees);
+        }
+
+        [HttpGet("employees-by-manager-department")]
+        [Authorize(Roles = "Manager, Admin")]
+        public async Task<ActionResult<IEnumerable<Employee>>> GetEmployeesByManagerDepartment()
+        {
+            var managerIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(managerIdClaim))
+            {
+                return Unauthorized("Invalid manager credentials");
+            }
+
+            var managerId = Guid.Parse(managerIdClaim);
+
+            // Find the department managed by this manager
+            var department = await DbContext.Departments
+                .FirstOrDefaultAsync(d => d.ManagerId == managerId);
+
+            if (department == null)
+            {
+                return NotFound("No department found for this manager.");
+            }
+
+            // Get employees in the manager's department
+            var employees = await DbContext.Employees
+                .Where(e => e.deptId == department.deptId)
+                .ToListAsync();
+
+            if (!employees.Any())
+            {
+                return NotFound("No employees found in this manager's department.");
+            }
+
+            return Ok(employees);
+        }
 
     }
 }
