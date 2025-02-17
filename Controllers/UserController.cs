@@ -22,7 +22,7 @@ namespace Hr_System_Demo_3.Controllers
         private readonly PasswordHasher<Employee> _passwordHasher = new();
 
         [HttpPost("add-employee")]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<ActionResult> AddEmployee(HrRequest request)
         {
             if (request == null || string.IsNullOrEmpty(request.UserName) || string.IsNullOrEmpty(request.Email))
@@ -47,6 +47,15 @@ namespace Hr_System_Demo_3.Controllers
                 return BadRequest("Invalid ShiftTypeId");
             }
 
+            var hrId = Guid.Parse(hrIdClaim);
+            var isHr = DbContext.Employees
+            .Any(e => e.empId == hrId && e.Position.Name == "Hr");
+
+            if (!isHr)
+            {
+                return Unauthorized("Invalid HR credentials");
+            }
+
             var newEmployee = new Employee
             {
                 empId = Guid.NewGuid(),
@@ -54,13 +63,13 @@ namespace Hr_System_Demo_3.Controllers
                 empEmail = request.Email,
                 empPassword = _passwordHasher.HashPassword(null, request.Password),
                 deptId = request.deptId,
-                Hr_Id = Guid.Parse(hrIdClaim), // Use Hr_Id from token
-                Role = request.Role,
+                Hr_Id = hrId, // Use Hr_Id from token
+                Role = "User",
                 ManagerId = request.ManagerId,
                 ShiftTypeId = request.ShiftTypereq,
                 PhoneNumber = request.PhoneNumber,
 
-                PositionId = 1, // Ensure PositionId is assigned correctly
+                PositionId = request.PositionId, // Ensure PositionId is assigned correctly
                 ContractTypeId = 1,
                 LeaveTypeId = 1,
                 ContractStart = DateTime.UtcNow,
@@ -80,8 +89,6 @@ namespace Hr_System_Demo_3.Controllers
                 EmployeeId = newEmployee.empId
             });
         }
-
-
         [HttpPost("add-manager")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> AddManager([FromBody] ManagerDto managerDto)
@@ -98,58 +105,78 @@ namespace Hr_System_Demo_3.Controllers
                 return Unauthorized("Invalid HR credentials");
             }
 
-            // Validate Foreign Keys
-            bool positionExists = await DbContext.Positions.AnyAsync(p => p.Id == managerDto.PositionId);
-            if (!positionExists) return BadRequest("Invalid PositionId.");
-
-            bool shiftTypeExists = await DbContext.ShiftTypes.AnyAsync(s => s.ShiftTypeId == managerDto.ShiftTypeId);
-            if (!shiftTypeExists) return BadRequest("Invalid ShiftTypeId.");
-
-            bool contractTypeExists = await DbContext.ContractTypes.AnyAsync(c => c.Id == managerDto.ContractTypeId);
-            if (!contractTypeExists) return BadRequest("Invalid ContractTypeId.");
-
-            bool leaveTypeExists = await DbContext.LeaveTypes.AnyAsync(l => l.Id == managerDto.LeaveTypeId);
-            if (!leaveTypeExists) return BadRequest("Invalid LeaveTypeId.");
-
+            // Validate DepartmentId if provided
             if (managerDto.DepartmentId.HasValue)
             {
                 bool departmentExists = await DbContext.Departments.AnyAsync(d => d.deptId == managerDto.DepartmentId);
                 if (!departmentExists) return BadRequest("Invalid DepartmentId.");
             }
 
-            if (managerDto.DirectManagerId.HasValue)
+            // Ensure DepartmentId is not null
+            if (!managerDto.DepartmentId.HasValue)
             {
-                bool directManagerExists = await DbContext.Managers.AnyAsync(m => m.ManagerId == managerDto.DirectManagerId);
-                if (!directManagerExists) return BadRequest("Invalid DirectManagerId.");
+                return BadRequest("DepartmentId is required.");
             }
+
+            // Generate a single GUID for both Manager and Employee
+            var managerId = Guid.NewGuid();
 
             // Create Manager Entity
             var newManager = new Manager
             {
-                ManagerId = Guid.NewGuid(),
+                ManagerId = managerId, // Use the same GUID for ManagerId
                 Name = managerDto.Name,
                 Address = managerDto.Address,
-                Hr_Id = Guid.Parse(hrIdClaim), // Use Hr_Id from token
                 PhoneNumber = managerDto.PhoneNumber,
-                PositionId = managerDto.PositionId,
-                DepartmentId = managerDto.DepartmentId,
-                WorkHours = managerDto.WorkHours,
-                WorkingDays = managerDto.WorkingDays ?? new List<string>(),
-                ShiftTypeId = managerDto.ShiftTypeId,
-                ContractTypeId = managerDto.ContractTypeId,
-                DirectManagerId = managerDto.DirectManagerId,
-                LeaveTypeId = managerDto.LeaveTypeId,
-                ContractStart = managerDto.ContractStart,
-                ContractEnd = managerDto.ContractEnd
+                DepartmentId = managerDto.DepartmentId.Value, // Use .Value to unwrap the nullable Guid
             };
 
+            // Add the manager to the database
             DbContext.Managers.Add(newManager);
+
+            // Create a corresponding Employee record for the manager
+            var newEmployee = new Employee
+            {
+                empId = managerId, // Use the same GUID for empId
+                empName = managerDto.Name,
+                empEmail = managerDto.Email, // Ensure Email is provided in ManagerDto
+                empPassword = _passwordHasher.HashPassword(null, managerDto.Password), // Ensure Password is provided in ManagerDto
+                deptId = managerDto.DepartmentId.Value, // Use .Value to unwrap the nullable Guid
+                Hr_Id = Guid.Parse(hrIdClaim), // Use Hr_Id from token
+                Role = "Manager", // Set role to Manager
+                ManagerId = null, // Managers typically don't have a manager
+                ShiftTypeId = 1, // Assign a default shift type (adjust as needed)
+                PhoneNumber = managerDto.PhoneNumber,
+                PositionId = 5, // Static PositionId for Manager
+                ContractTypeId = 1, // Default contract type (adjust as needed)
+                LeaveTypeId = 1, // Default leave type (adjust as needed)
+                ContractStart = DateTime.UtcNow,
+                ContractEnd = DateTime.UtcNow.AddYears(1),
+                ContractDuration = 12,
+                salary = 0, // Set a default salary or allow it to be provided in ManagerDto
+                WorkHours = 40,
+                WorkingDays = new List<string> { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday" }
+            };
+
+            // Add the employee to the database
+            DbContext.Employees.Add(newEmployee);
+
+            // Save changes to the database
             await DbContext.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetManagerById), new { id = newManager.ManagerId }, newManager);
         }
+        public class ManagerDto
+        {
+            public string Name { get; set; }
+            public string Email { get; set; } // Required for login
+            public string Password { get; set; } // Required for login
+            public string? Address { get; set; }
+            public string? PhoneNumber { get; set; }
+            public Guid? DepartmentId { get; set; }
+        }
+        [HttpGet("manager/{id}")]
 
-        [HttpGet("{id}")]
         public async Task<IActionResult> GetManagerById(Guid id)
         {
             var manager = await DbContext.Managers.FindAsync(id);
@@ -158,24 +185,66 @@ namespace Hr_System_Demo_3.Controllers
             return Ok(manager);
         }
 
-
-        public class ManagerDto
+        [HttpGet("get-managers")]
+        [Authorize]
+        public async Task<IActionResult> GetManagers()
         {
-            public string Name { get; set; }
-            public string? Address { get; set; }
-            public Guid Hr_Id { get; set; }
-            public int? PhoneNumber { get; set; }
-            public int PositionId { get; set; }
-            public Guid? DepartmentId { get; set; }
-            public double? WorkHours { get; set; }
-            public List<string>? WorkingDays { get; set; }
-            public int ShiftTypeId { get; set; }
-            public int ContractTypeId { get; set; }
-            public Guid? DirectManagerId { get; set; }
-            public int LeaveTypeId { get; set; }
-            public DateTime? ContractStart { get; set; }
-            public DateTime? ContractEnd { get; set; }
+            var managers = await DbContext.Managers.ToListAsync();
+            if (managers == null) return NotFound("there is no managers yet.");
+
+            return Ok(managers);
         }
+        [HttpDelete("delete-manager/{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeleteManager(Guid id)
+        {
+            var manager = await DbContext.Managers.FindAsync(id);
+            if (manager == null)
+            {
+                return NotFound("Manager not found.");
+            }
+
+            // Check if there are any employees linked to this manager
+            bool hasEmployees = await DbContext.Employees.AnyAsync(e => e.ManagerId == id);
+            if (hasEmployees)
+            {
+                return BadRequest("Cannot delete this manager because they are assigned to employees.");
+            }
+
+            DbContext.Managers.Remove(manager);
+            await DbContext.SaveChangesAsync();
+
+            return Ok(new { Message = "Manager deleted successfully", ManagerId = id });
+        }
+
+        [HttpPut("edit-manager/{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> EditManager(Guid id, [FromBody] ManagerDto managerDto)
+        {
+            if (managerDto == null)
+            {
+                return BadRequest("Invalid manager data.");
+            }
+
+            var manager = await DbContext.Managers.FindAsync(id);
+            if (manager == null)
+            {
+                return NotFound("Manager not found.");
+            }
+
+            // Update manager properties
+            manager.Name = managerDto.Name;
+            manager.Address = managerDto.Address;
+            manager.PhoneNumber = managerDto.PhoneNumber;
+            manager.DepartmentId = managerDto.DepartmentId;
+
+            // Save changes to the database
+            DbContext.Managers.Update(manager);
+            await DbContext.SaveChangesAsync();
+
+            return Ok(new { Message = "Manager updated successfully", ManagerId = manager.ManagerId });
+        }
+    
 
 
 
@@ -207,7 +276,7 @@ namespace Hr_System_Demo_3.Controllers
                 PasswordHash = _passwordHasher.HashPassword(null, request.Password),
                 deptId = request.deptId,
                 HrId = Guid.Parse(hrIdClaim), // Use Hr_Id from token
-                Role = request.Role,
+                Role = "User",
                 Status = "Pending",
                 ShiftTypeId = request.ShiftTypereq,
                 Salary = request.Salary,
@@ -225,7 +294,7 @@ namespace Hr_System_Demo_3.Controllers
             return Ok(new { Message = "Employee application submitted successfully and awaiting General Manager approval", ApplicationId = newApplication.Id });
         }
 
-            [HttpGet("employee-applications")]
+        [HttpGet("employee-applications")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<IEnumerable<EmployeeApplication>>> GetEmployeeApplications()
         {
@@ -237,22 +306,22 @@ namespace Hr_System_Demo_3.Controllers
 
         }
 
-            [HttpPost("employee-application-action")]
-           [Authorize(Roles = "Admin")]
-           [AllowAnonymous]
-            public async Task<ActionResult> EmployeeApplicationAction(int applicationId, bool isApproved, string PhoneNumber, string? rejectReason = null)
+        [HttpPost("employee-application-action")]
+        [Authorize(Roles = "Admin")]
+        [AllowAnonymous]
+        public async Task<ActionResult> EmployeeApplicationAction(int applicationId, bool isApproved, string PhoneNumber, string? rejectReason = null)
+        {
+            var application = await DbContext.Set<EmployeeApplication>().FindAsync(applicationId);
+            if (application == null) return NotFound("Employee application not found");
+
+            if (application.Status != "Pending")
+                return BadRequest("Application has already been processed");
+
+            if (isApproved)
             {
-                var application = await DbContext.Set<EmployeeApplication>().FindAsync(applicationId);
-                if (application == null) return NotFound("Employee application not found");
-
-                if (application.Status != "Pending")
-                    return BadRequest("Application has already been processed");
-
-                if (isApproved)
-                {
-                    // Ensure all required properties exist
-                    if (application.ShiftTypeId == 0 || application.HrId == Guid.Empty)
-                        return BadRequest("Invalid ShiftTypeId or HrId");
+                // Ensure all required properties exist
+                if (application.ShiftTypeId == 0 || application.HrId == Guid.Empty)
+                    return BadRequest("Invalid ShiftTypeId or HrId");
 
                 var newEmployee = new Employee
                 {
@@ -282,28 +351,29 @@ namespace Hr_System_Demo_3.Controllers
                 };
 
                 DbContext.Employees.Add(newEmployee);
-                    application.Status = "Approved by Manager";
-                }
-                else
-                {
-                    application.Status = "Rejected";
-                    application.RejectReason = rejectReason ?? "No reason provided";
-                }
-
-                await DbContext.SaveChangesAsync();
-                return Ok(new
-                {
-                    Message = "Application processed successfully",
-                    ApplicationId = application.Id,
-                    Status = application.Status
-                });
+                application.Status = "Approved by Manager";
+            }
+            else
+            {
+                application.Status = "Rejected";
+                application.RejectReason = rejectReason ?? "No reason provided";
             }
 
+            await DbContext.SaveChangesAsync();
+            return Ok(new
+            {
+                Message = "Application processed successfully",
+                ApplicationId = application.Id,
+                Status = application.Status
+            });
+        }
+
         [HttpPost("login")]
-      [AllowAnonymous]
-      //  [Authorize(Roles ="Admin,User")]
+        [AllowAnonymous]
+        //  [Authorize(Roles ="Admin,User")]
         public ActionResult<string> Login(AuthenticateRequest request)
         {
+
             // Include the Position when querying the Employee
             var user = DbContext.Employees
                 .Include(e => e.Position)
@@ -374,7 +444,7 @@ namespace Hr_System_Demo_3.Controllers
                 TotalDaysOff = totalDaysOff.ToString(),
                 Status = LeaveStatus.Pending,
                 Action = "Pending",
-                comment=request.comment,
+                comment = request.comment,
             };
 
             DbContext.LeaveRequests.Add(leaveRequest);
@@ -414,7 +484,7 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpGet("hr-employee-leave-requests")]
-        [Authorize(Roles = "HrEmp, Admin")]
+        [Authorize(Roles = "Manager")]
         public async Task<ActionResult<IEnumerable<LeaveRequest>>> GetHrEmployeeLeaveRequests()
         {
             // Extract HR ID from the token
@@ -428,7 +498,7 @@ namespace Hr_System_Demo_3.Controllers
 
             // Find all employees added by this HR
             var employeeIds = await DbContext.Employees
-                .Where(e => e.Hr_Id == hrId)
+                .Where(e => e.ManagerId == hrId)
                 .Select(e => e.empId)
                 .ToListAsync();
 
@@ -451,10 +521,10 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpPost("leave-request-action")]
-        [Authorize(Roles = "Admin")]
-        public async Task<ActionResult> LeaveRequestAction(int leaveRequestId, bool isApproved, string? rejectReason = null)
+        [Authorize(Roles = "Manager")]
+        public async Task<ActionResult> LeaveRequestAction([FromBody] LeaveRequestActionModel model)
         {
-            var leaveRequest = await DbContext.LeaveRequests.FindAsync(leaveRequestId);
+            var leaveRequest = await DbContext.LeaveRequests.FindAsync(model.LeaveRequestId);
             if (leaveRequest == null)
             {
                 return NotFound("Leave request not found");
@@ -471,7 +541,7 @@ namespace Hr_System_Demo_3.Controllers
                 return BadRequest("Leave request has already been processed");
             }
 
-            if (isApproved)
+            if (model.IsApproved)
             {
                 leaveRequest.Status = LeaveStatus.Accepted;
                 leaveRequest.Action = "Approved";
@@ -484,13 +554,19 @@ namespace Hr_System_Demo_3.Controllers
             {
                 leaveRequest.Status = LeaveStatus.Refused;
                 leaveRequest.Action = "Rejected";
-                leaveRequest.RejectReason = rejectReason ?? "No reason provided";
+                leaveRequest.RejectReason = model.RejectReason ?? "No reason provided";
             }
 
             await DbContext.SaveChangesAsync();
             return Ok(new { Message = "Leave request processed successfully", LeaveRequestId = leaveRequest.Id, Status = leaveRequest.Status });
         }
 
+        public class LeaveRequestActionModel
+        {
+            public int LeaveRequestId { get; set; }
+            public bool IsApproved { get; set; }
+            public string? RejectReason { get; set; }
+        }
         public class UserIdDto
         {
             public Guid UserId { get; set; }
@@ -581,7 +657,7 @@ namespace Hr_System_Demo_3.Controllers
                         var earlyLeaveDuration = shiftEnd - currentTime.TimeOfDay;
                         var deductionAmount = CalculateDeduction(earlyLeaveDuration, employee.salary);
 
-                        if (deductionAmount > 0)        
+                        if (deductionAmount > 0)
                         {
                             var deduction = new Deduction
                             {
@@ -607,20 +683,29 @@ namespace Hr_System_Demo_3.Controllers
             }
         }
 
-        [HttpPost("approve-deduction")]
-        [Authorize(Roles = "Admin")]
-        public async Task<ActionResult> ApproveDeduction(int deductionId)
+        public class DeductionActionRequest
         {
-            var deduction = await DbContext.Deductions.FindAsync(deductionId);
+            public int DeductionId { get; set; }
+            public DeductionState Action { get; set; }
+        }
+
+        [HttpPost("take-deduction-action")]
+        [Authorize(Roles = "Manager")]
+        public async Task<ActionResult> TakeDeductionAction([FromBody] DeductionActionRequest request)
+        {
+            var deduction = await DbContext.Deductions.FindAsync(request.DeductionId);
             if (deduction == null) return NotFound("Deduction not found");
 
             if (deduction.state != DeductionState.submited)
                 return BadRequest("Deduction has already been processed");
 
-            deduction.state = DeductionState.Approved; // Correct state transition
+            if (request.Action != DeductionState.Approved && request.Action != DeductionState.Rejected)
+                return BadRequest("Invalid action. Only 'Approved' or 'Rejected' are allowed.");
+
+            deduction.state = request.Action;
             await DbContext.SaveChangesAsync();
 
-            return Ok(new { Message = "Deduction approved by Manager" });
+            return Ok(new { Message = $"Deduction {request.Action} successfully" });
         }
 
         [HttpPost("finalize-deduction")]
@@ -654,7 +739,7 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpGet("deductions/{employeeId}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<Deduction>>> GetEmployeeDeductions(Guid employeeId)
         {
             var deductions = await DbContext.Deductions
@@ -667,17 +752,26 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpGet("employees-by-hr")]
-        [Authorize(Roles = "HrEmp, Admin")]
+        [Authorize(Roles = "User, Admin")]
         public async Task<ActionResult<IEnumerable<Employee>>> GetEmployeesByHr()
         {
+
             var hrIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(hrIdClaim))
             {
                 return Unauthorized("Invalid HR credentials");
             }
 
-            var hrId = Guid.Parse(hrIdClaim);
 
+            var hrId = Guid.Parse(hrIdClaim);
+            var isHr = DbContext.Employees
+                 .Any(e => e.empId == hrId && e.Position.Name == "Hr");
+
+            if (!isHr)
+            {
+                return Unauthorized("Invalid HR credentials");
+
+            }
             var employees = await DbContext.Employees
                 .Where(e => e.Hr_Id == hrId)
                 .ToListAsync();
@@ -702,18 +796,12 @@ namespace Hr_System_Demo_3.Controllers
 
             var managerId = Guid.Parse(managerIdClaim);
 
-            // Find the department managed by this manager
-            var department = await DbContext.Departments
-                .FirstOrDefaultAsync(d => d.ManagerId == managerId);
 
-            if (department == null)
-            {
-                return NotFound("No department found for this manager.");
-            }
+           
 
             // Get employees in the manager's department
             var employees = await DbContext.Employees
-                .Where(e => e.deptId == department.deptId)
+                .Where(e => e.ManagerId == managerId)
                 .ToListAsync();
 
             if (!employees.Any())
@@ -722,6 +810,68 @@ namespace Hr_System_Demo_3.Controllers
             }
 
             return Ok(employees);
+        }
+
+        public class AssignDeductionDto
+        {
+            public Guid EmployeeId { get; set; } // The employee to whom the deduction is assigned
+            public string Reason { get; set; } // Reason for the deduction (e.g., "Late Arrival", "Early Leave")
+            public decimal PenaltyAmount { get; set; } // The amount to deduct
+        }
+
+        [HttpPost("assign-deduction")]
+        [Authorize]
+        public async Task<ActionResult> AssignDeduction([FromBody] AssignDeductionDto request)
+        {
+            // Validate the request
+            if (request == null || request.EmployeeId == Guid.Empty || request.PenaltyAmount <= 0)
+            {
+                return BadRequest("Invalid deduction data.");
+            }
+
+            // Check if the employee exists
+            var employee = await DbContext.Employees.FindAsync(request.EmployeeId);
+            if (employee == null)
+            {
+                return NotFound("Employee not found.");
+            }
+
+            // Extract HR ID from the token
+            var hrIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(hrIdClaim))
+            {
+                return Unauthorized("Invalid HR credentials.");
+            }
+
+            var userId = Guid.Parse(hrIdClaim);
+
+            // Check if the user is a Manager
+            var isManager = await DbContext.Employees
+                .Where(us => us.empId == userId && us.Role != null)
+                .AnyAsync(us => us.Role.ToLower() == "manager");
+
+            // Create the deduction record
+            var deduction = new Deduction
+            {
+                EmployeeId = request.EmployeeId,
+                DeptId = employee.deptId, // Assign the employee's department
+                Date = DateTime.UtcNow,
+                Reason = request.Reason,
+                PenaltyAmount = request.PenaltyAmount,
+                state = isManager? DeductionState.Approved : DeductionState.submited, // Initial state
+                HrId = userId, // Track which HR assigned the deduction
+                isFinalized = false // Finalize if user is a Manager
+            };
+
+            // Add the deduction to the database
+            DbContext.Deductions.Add(deduction);
+            await DbContext.SaveChangesAsync();
+
+            return Ok(new
+            {
+                Message = "Deduction assigned successfully",
+                IsFinalized = deduction.isFinalized
+            });
         }
 
     }

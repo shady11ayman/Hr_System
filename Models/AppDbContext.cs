@@ -89,32 +89,32 @@ namespace Hr_System_Demo_3
         .HasForeignKey<Department>(d => d.ManagerId) // ✅ FK in Department table
         .OnDelete(DeleteBehavior.SetNull);
 
-            modelBuilder.Entity<Manager>()
-        .HasOne(m => m.ShiftType)
-        .WithMany()
-        .HasForeignKey(m => m.ShiftTypeId)
-        .OnDelete(DeleteBehavior.Restrict); // ✅ Prevents multiple cascade paths
+        //    modelBuilder.Entity<Manager>()
+        //.HasOne(m => m.ShiftType)
+        //.WithMany()
+        //.HasForeignKey(m => m.ShiftTypeId)
+        //.OnDelete(DeleteBehavior.Restrict); // ✅ Prevents multiple cascade paths
 
-            // Manager ↔ ContractType (One-to-Many)
-            modelBuilder.Entity<Manager>()
-                .HasOne(m => m.ContractType)
-                .WithMany()
-                .HasForeignKey(m => m.ContractTypeId)
-                .OnDelete(DeleteBehavior.Restrict); // ✅ Prevents cascade path issues
+        //    // Manager ↔ ContractType (One-to-Many)
+        //    modelBuilder.Entity<Manager>()
+        //        .HasOne(m => m.ContractType)
+        //        .WithMany()
+        //        .HasForeignKey(m => m.ContractTypeId)
+        //        .OnDelete(DeleteBehavior.Restrict); // ✅ Prevents cascade path issues
 
-            // Manager ↔ Position (One-to-Many)
-            modelBuilder.Entity<Manager>()
-                .HasOne(m => m.Position)
-                .WithMany()
-                .HasForeignKey(m => m.PositionId)
-                .OnDelete(DeleteBehavior.Restrict); // ✅ Prevents issues
+        //    // Manager ↔ Position (One-to-Many)
+        //    modelBuilder.Entity<Manager>()
+        //        .HasOne(m => m.Position)
+        //        .WithMany()
+        //        .HasForeignKey(m => m.PositionId)
+        //        .OnDelete(DeleteBehavior.Restrict); // ✅ Prevents issues
 
-            // Manager ↔ Direct Manager (Self-Referencing)
-            modelBuilder.Entity<Manager>()
-                .HasOne(m => m.DirectManager)
-                .WithMany()
-                .HasForeignKey(m => m.DirectManagerId)
-                .OnDelete(DeleteBehavior.Restrict);
+        //    // Manager ↔ Direct Manager (Self-Referencing)
+        //    modelBuilder.Entity<Manager>()
+        //        .HasOne(m => m.DirectManager)
+        //        .WithMany()
+        //        .HasForeignKey(m => m.DirectManagerId)
+        //        .OnDelete(DeleteBehavior.Restrict);
 
 
 

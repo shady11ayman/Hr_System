@@ -8,7 +8,7 @@ namespace Hr_System_Demo_3.Authentication
         public string Password { get; set; }
         public string Email { get; set; }
         public Guid deptId { get; set; }
-        public string Role { get; set; }
+        public int PositionId { get; set; }
         public Guid Hr_Id { get; set; }
         public int ShiftTypereq { get; set; }
         public string PhoneNumber { get; set; }

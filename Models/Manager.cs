@@ -9,41 +9,41 @@ namespace Hr_System_Demo_3.Models
         public Guid ManagerId { get; set; }
         public string Name { get; set; }
         public string? Address { get; set; }
-        public Guid Hr_Id { get; set; } //hr_id no 
-        public int? PhoneNumber { get; set; }
-        public int PositionId { get; set; }
+        //public Guid Hr_Id { get; set; } //hr_id no 
+        public string? PhoneNumber { get; set; }
+        //public int PositionId { get; set; } 
 
-        [ForeignKey("PositionId")]
-        public Position? Position { get; set; }
+        //[ForeignKey("PositionId")]
+        //public Position? Position { get; set; }
 
         public Guid? DepartmentId { get; set; } // Nullable to allow soft deletion
 
         [ForeignKey("DepartmentId")]
         public virtual Department? Department { get; set; }
 
-        public double? WorkHours { get; set; }
-        public List<string> WorkingDays { get; set; } = new List<string>();
+        //public double? WorkHours { get; set; }
+        //public List<string> WorkingDays { get; set; } = new List<string>();
 
-        public int ShiftTypeId { get; set; }
-        [ForeignKey("ShiftTypeId")]
-        public virtual ShiftType? ShiftType { get; set; }
+        //public int ShiftTypeId { get; set; }
+        //[ForeignKey("ShiftTypeId")]
+        //public virtual ShiftType? ShiftType { get; set; }
 
-        public int ContractTypeId { get; set; }
-        [ForeignKey("ContractTypeId")]
-        public virtual ContractType? ContractType { get; set; }
+        //public int ContractTypeId { get; set; }
+        //[ForeignKey("ContractTypeId")]
+        //public virtual ContractType? ContractType { get; set; }
 
-        public Guid? DirectManagerId { get; set; }
+        //public Guid? DirectManagerId { get; set; }
 
-        [ForeignKey("DirectManagerId")]
-        public virtual Manager? DirectManager { get; set; }
+        //[ForeignKey("DirectManagerId")]
+        //public virtual Manager? DirectManager { get; set; }
 
-        public int LeaveTypeId { get; set; }
+        //public int LeaveTypeId { get; set; }
 
-        [ForeignKey("LeaveTypeId")]
-        public virtual LeaveType LeaveType { get; set; }
+        //[ForeignKey("LeaveTypeId")]
+        //public virtual LeaveType LeaveType { get; set; }
 
-        public DateTime? ContractStart { get; set; }
-        public DateTime? ContractEnd { get; set; }
+        //public DateTime? ContractStart { get; set; }
+        //public DateTime? ContractEnd { get; set; }
 
         public ICollection<Employee>? Employees { get; set; }
     }
