@@ -1,6 +1,6 @@
 ﻿using Hr_System_Demo_3.lookups;
 
-namespace Hr_System_Demo_3.Authentication
+namespace Hr_System_Demo_3.DTOs.Auth
 {
     public class HrRequest
     {

@@ -1,5 +1,6 @@
 ﻿using Hr_System_Demo_3.Authentication;
 using Hr_System_Demo_3.Day_off_requests;
+using Hr_System_Demo_3.DTOs.Auth;
 using Hr_System_Demo_3.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
