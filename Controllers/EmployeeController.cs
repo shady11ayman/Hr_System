@@ -32,24 +32,17 @@ namespace Hr_System_Demo_3.Controllers
                 return Unauthorized("Invalid HR credentials");
             }
 
-            // Calculate salary deductions
-            decimal totalDeductions = request.Salary * (request.InsuranceRate + request.TaxRate + request.MedicalInsuranceRate) / 100;
-            decimal netSalary = request.Salary - totalDeductions;
-
-            // Ensure required properties exist
-            if (request.ShiftTypereq == 0)
-            {
-                return BadRequest("Invalid ShiftTypeId");
-            }
-
             var hrId = Guid.Parse(hrIdClaim);
-            var isHr = DbContext.Employees
-            .Any(e => e.empId == hrId && e.Position.Name == "Hr");
+            var isHr = DbContext.Employees.Any(e => e.empId == hrId && e.Position.Name == "Hr");
 
             if (!isHr)
             {
                 return Unauthorized("Invalid HR credentials");
             }
+
+            // Calculate salary deductions
+            decimal totalDeductions = request.Salary * (request.InsuranceRate + request.TaxRate + request.MedicalInsuranceRate) / 100;
+            decimal netSalary = request.Salary - totalDeductions;
 
             var newEmployee = new Employee
             {
@@ -63,8 +56,7 @@ namespace Hr_System_Demo_3.Controllers
                 ManagerId = request.ManagerId,
                 ShiftTypeId = request.ShiftTypereq,
                 PhoneNumber = request.PhoneNumber,
-
-                PositionId = request.PositionId, // Ensure PositionId is assigned correctly
+                PositionId = request.PositionId,
                 ContractTypeId = 1,
                 LeaveTypeId = 1,
                 ContractStart = DateTime.UtcNow,
@@ -78,10 +70,28 @@ namespace Hr_System_Demo_3.Controllers
             DbContext.Employees.Add(newEmployee);
             await DbContext.SaveChangesAsync();
 
+            // ✅ **Create Default First Salary Statement**
+            var firstSalaryStatement = new SalaryStatement
+            {
+                EmployeeId = newEmployee.empId,
+                StatementDate = DateTime.UtcNow,
+                TotalSalary = request.Salary,
+                TotalDeductions = totalDeductions,
+                NetSalary = netSalary,
+                State = SalaryStatementState.Pending, // Set default state to Pending
+                HrId = hrId,
+                ManagerId = request.ManagerId,
+                
+            };
+
+            DbContext.SalaryStatements.Add(firstSalaryStatement);
+            await DbContext.SaveChangesAsync();
+
             return Ok(new
             {
                 Message = "Employee added successfully",
-                EmployeeId = newEmployee.empId
+                EmployeeId = newEmployee.empId,
+                SalaryStatementId = firstSalaryStatement.Id
             });
         }
 

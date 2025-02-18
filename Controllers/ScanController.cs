@@ -51,6 +51,7 @@ namespace Hr_System_Demo_3.Controllers
                 DbContext.ScanRecords.Add(scanRecord);
                 await DbContext.SaveChangesAsync();
 
+                // Check if employee is late for arrival
                 if (currentTime.TimeOfDay > shiftStart)
                 {
                     var delay = currentTime.TimeOfDay - shiftStart;
@@ -58,6 +59,18 @@ namespace Hr_System_Demo_3.Controllers
 
                     if (deductionAmount > 0)
                     {
+                        // Get the latest unfinalized salary statement for the employee
+                        var latestStatement = await DbContext.SalaryStatements
+                            .Where(s => s.EmployeeId == userId && s.State != SalaryStatementState.Paid)
+                            .OrderByDescending(s => s.StatementDate)
+                            .FirstOrDefaultAsync();
+
+                        if (latestStatement == null)
+                        {
+                            return BadRequest("No active salary statement found for the employee.");
+                        }
+
+                        // Create and submit the deduction
                         var deduction = new Deduction
                         {
                             EmployeeId = userId,
@@ -67,8 +80,10 @@ namespace Hr_System_Demo_3.Controllers
                             ExitTime = null,
                             Reason = "Late Arrival",
                             PenaltyAmount = (decimal)deductionAmount,
-                            state = DeductionState.submited
+                            state = DeductionState.submited,  // Deduction is waiting for approval
+                            SalaryStatementId = latestStatement.Id // Associate deduction with the latest salary statement
                         };
+
                         DbContext.Deductions.Add(deduction);
                         await DbContext.SaveChangesAsync();
                     }
@@ -82,6 +97,7 @@ namespace Hr_System_Demo_3.Controllers
                     scanRecord.ExitTime = currentTime;
                     await DbContext.SaveChangesAsync();
 
+                    // Check if employee is leaving early
                     if (currentTime.TimeOfDay < shiftEnd)
                     {
                         var earlyLeaveDuration = shiftEnd - currentTime.TimeOfDay;
@@ -89,6 +105,18 @@ namespace Hr_System_Demo_3.Controllers
 
                         if (deductionAmount > 0)
                         {
+                            // Get the latest unfinalized salary statement for the employee
+                            var latestStatement = await DbContext.SalaryStatements
+                                .Where(s => s.EmployeeId == userId && s.State != SalaryStatementState.Paid)
+                                .OrderByDescending(s => s.StatementDate)
+                                .FirstOrDefaultAsync();
+
+                            if (latestStatement == null)
+                            {
+                                return BadRequest("No active salary statement found for the employee.");
+                            }
+
+                            // Create and submit the deduction
                             var deduction = new Deduction
                             {
                                 EmployeeId = userId,
@@ -98,8 +126,10 @@ namespace Hr_System_Demo_3.Controllers
                                 ExitTime = currentTime,
                                 Reason = "Early Leave",
                                 PenaltyAmount = (decimal)deductionAmount,
-                                state = DeductionState.submited,
+                                state = DeductionState.submited,  // Deduction is waiting for approval
+                                SalaryStatementId = latestStatement.Id // Associate deduction with the latest salary statement
                             };
+
                             DbContext.Deductions.Add(deduction);
                             await DbContext.SaveChangesAsync();
                         }
@@ -112,6 +142,7 @@ namespace Hr_System_Demo_3.Controllers
                 }
             }
         }
+
         private double CalculateDeduction(TimeSpan timeDifference, double salary)
         {
             double minutesLate = timeDifference.TotalMinutes;

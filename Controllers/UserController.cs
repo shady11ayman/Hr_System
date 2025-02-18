@@ -709,35 +709,35 @@ namespace Hr_System_Demo_3.Controllers
             return Ok(new { Message = $"Deduction {request.Action} successfully" });
         }
 
-        [HttpPost("finalize-deduction")]
-        [Authorize(Roles = "Admin")]
-        public async Task<ActionResult> FinalizeDeduction(int deductionId, bool isApproved, string? rejectReason = null)
-        {
-            var deduction = await DbContext.Deductions.FindAsync(deductionId);
-            if (deduction == null) return NotFound("Deduction not found");
+        //[HttpPost("finalize-deduction")]
+        //[Authorize(Roles = "Admin")]
+        //public async Task<ActionResult> FinalizeDeduction(int deductionId, bool isApproved, string? rejectReason = null)
+        //{
+        //    var deduction = await DbContext.Deductions.FindAsync(deductionId);
+        //    if (deduction == null) return NotFound("Deduction not found");
 
-            if (deduction.state != DeductionState.Approved)
-                return BadRequest("Deduction has not been approved by the Manager yet");
+        //    if (deduction.state != DeductionState.Approved)
+        //        return BadRequest("Deduction has not been approved by the Manager yet");
 
-            if (isApproved)
-            {
-                deduction.state = DeductionState.Approved;
-                var salaryAfterDeduction = new SalaryAfterDeductions
-                {
-                    empId = deduction.EmployeeId,
-                    Salaryafterchange = (double)deduction.PenaltyAmount
-                };
-                DbContext.SalaryAfterDeductions.Add(salaryAfterDeduction);
-            }
-            else
-            {
-                deduction.state = DeductionState.Rejected;
-                deduction.Reason = rejectReason ?? "No reason provided";
-            }
+        //    if (isApproved)
+        //    {
+        //        deduction.state = DeductionState.Approved;
+        //        var salaryAfterDeduction = new SalaryAfterDeductions
+        //        {
+        //            empId = deduction.EmployeeId,
+        //            Salaryafterchange = (double)deduction.PenaltyAmount
+        //        };
+        //        //DbContext.SalaryAfterDeductions.Add(salaryAfterDeduction);
+        //    }
+        //    else
+        //    {
+        //        deduction.state = DeductionState.Rejected;
+        //        deduction.Reason = rejectReason ?? "No reason provided";
+        //    }
 
-            await DbContext.SaveChangesAsync();
-            return Ok(new { Message = "Deduction finalized", Status = deduction.state });
-        }
+        //    await DbContext.SaveChangesAsync();
+        //    return Ok(new { Message = "Deduction finalized", Status = deduction.state });
+        //}
 
         [HttpGet("deductions/{employeeId}")]
         [Authorize]

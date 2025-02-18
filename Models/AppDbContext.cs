@@ -24,7 +24,8 @@ namespace Hr_System_Demo_3
         public DbSet<ScanRecord> ScanRecords { get; set; }
         public DbSet<Deduction> Deductions { get; set; }
         public DbSet<Manager> Managers { get; set; }
-        public DbSet<SalaryAfterDeductions> SalaryAfterDeductions { get; set; }
+        public DbSet<SalaryStatement> SalaryStatements { get; set; }
+
 
 
 
