@@ -89,5 +89,16 @@ namespace Hr_System_Demo_3.Controllers
             return Ok(new { Message = $"Deduction {request.Action} successfully" });
         }
 
+        [HttpGet("deductions/{employeeId}")]
+        public async Task<ActionResult<IEnumerable<Deduction>>> GetEmployeeDeductions(Guid employeeId)
+        {
+            var deductions = await DbContext.Deductions
+                .Where(d => d.EmployeeId == employeeId)
+                .ToListAsync();
+
+            if (!deductions.Any()) return NotFound("No deductions found.");
+
+            return Ok(deductions);
+        }
     }
 }

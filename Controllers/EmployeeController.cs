@@ -118,6 +118,34 @@ namespace Hr_System_Demo_3.Controllers
 
             return Ok(employees);
         }
+        [HttpGet("employees-by-manager-department")]
+        [Authorize(Roles = "Manager, Admin")]
+        public async Task<ActionResult<IEnumerable<Employee>>> GetEmployeesByManagerDepartment()
+        {
+            var managerIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(managerIdClaim))
+            {
+                return Unauthorized("Invalid manager credentials");
+            }
+
+            var managerId = Guid.Parse(managerIdClaim);
+
+
+
+
+            // Get employees in the manager's department
+            var employees = await DbContext.Employees
+                .Where(e => e.ManagerId == managerId)
+                .ToListAsync();
+
+            if (!employees.Any())
+            {
+                return NotFound("No employees found in this manager's department.");
+            }
+
+            return Ok(employees);
+        }
+
 
     }
 }

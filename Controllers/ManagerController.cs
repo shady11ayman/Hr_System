@@ -11,7 +11,6 @@ namespace Hr_System_Demo_3.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin")]
     public class ManagerController(AppDbContext DbContext) : ControllerBase
     {
         private readonly PasswordHasher<Employee> _passwordHasher = new();
@@ -113,7 +112,7 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpGet("get-managers")]
-        [Authorize]
+        [Authorize (Roles = "Admin,User,Manager")]
         public async Task<IActionResult> GetManagers()
         {
             var managers = await DbContext.Managers.ToListAsync();
