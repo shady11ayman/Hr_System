@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Hr_System_Demo_3.DTOs.Manager;
-using static Hr_System_Demo_3.Controllers.UserController;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 

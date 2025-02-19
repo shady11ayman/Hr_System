@@ -36,7 +36,7 @@ namespace Hr_System_Demo_3
             // Database Configuration
             var connectionString = builder.Environment.IsDevelopment()
                 ? "Data Source=82.112.254.244,1433;Initial Catalog=Hr_System_DB;Persist Security Info=True;Encrypt=false;TrustServerCertificate=true;User ID=sa;Password=Peter@123"
-                : "Data Source=172.17.0.12,1433;Initial Catalog=Hr_System_DB;Persist Security Info=True;Encrypt=false;TrustServerCertificate=true;User ID=sa;Password=Peter@123";
+                : "Data Source=172.17.0.19,1433;Initial Catalog=Hr_System_DB;Persist Security Info=True;Encrypt=false;TrustServerCertificate=true;User ID=sa;Password=Peter@123";
 
             builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
 
