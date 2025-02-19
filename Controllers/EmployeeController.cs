@@ -95,6 +95,61 @@ namespace Hr_System_Demo_3.Controllers
             });
         }
 
+        [HttpPut("edit-employee/{id}")]
+        public async Task<ActionResult> EditEmployee(Guid id, HrEditRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest("Invalid request data");
+            }
+
+            // Extract Hr_Id from the token
+            var hrIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(hrIdClaim))
+            {
+                return Unauthorized("Invalid HR credentials");
+            }
+
+            var hrId = Guid.Parse(hrIdClaim);
+            var isHr = DbContext.Employees.Any(e => e.empId == hrId && e.Position.Name == "Hr");
+
+            if (!isHr)
+            {
+                return Unauthorized("Invalid HR credentials");
+            }
+
+            var employee = await DbContext.Employees.FindAsync(id);
+            if (employee == null)
+            {
+                return NotFound("Employee not found");
+            }
+
+            // Update fields if provided
+            employee.empName = string.IsNullOrEmpty(request.UserName) ? employee.empName : request.UserName;
+            employee.empEmail = string.IsNullOrEmpty(request.Email) ? employee.empEmail : request.Email;
+            employee.deptId = request.deptId ?? employee.deptId;
+            employee.ManagerId = request.ManagerId ?? employee.ManagerId; 
+            employee.ShiftTypeId = request.ShiftTypereq ?? employee.ShiftTypeId;
+            employee.PhoneNumber = string.IsNullOrEmpty(request.PhoneNumber) ? employee.PhoneNumber : request.PhoneNumber;
+            employee.PositionId = request.PositionId ?? employee.PositionId;
+            employee.salary = request.Salary ?? employee.salary;
+            employee.WorkHours = request.WorkHours ?? employee.WorkHours;
+            employee.ContractStart = request.ContractStart ?? employee.ContractStart;
+            employee.ContractEnd = request.ContractEnd ?? employee.ContractEnd;
+
+            if (!string.IsNullOrEmpty(request.Password))
+            {
+                employee.empPassword = _passwordHasher.HashPassword(employee, request.Password);
+            }
+
+            await DbContext.SaveChangesAsync();
+
+            return Ok(new
+            {
+                Message = "Employee updated successfully",
+                EmployeeId = employee.empId
+            });
+        }
 
 
         [HttpGet("employees-by-hr")]

@@ -91,15 +91,64 @@ namespace Hr_System_Demo_3.Controllers
 
             return CreatedAtAction(nameof(GetManagerById), new { id = newManager.ManagerId }, newManager);
         }
-        public class ManagerDto
+
+        [HttpPut("edit-manager/{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> EditManager(Guid id, [FromBody] EditManagerDto managerDto)
         {
-            public string Name { get; set; }
-            public string Email { get; set; } // Required for login
-            public string Password { get; set; } // Required for login
-            public string? Address { get; set; }
-            public string? PhoneNumber { get; set; }
-            public Guid? DepartmentId { get; set; }
+            var manager = await DbContext.Managers.FindAsync(id);
+            if (manager == null)
+            {
+                return NotFound("Manager not found.");
+            }
+
+            var employee = await DbContext.Employees.FirstOrDefaultAsync(e => e.empId == id);
+            if (employee == null)
+            {
+                return NotFound("Associated employee record not found.");
+            }
+
+            // Update fields if they are provided
+            if (!string.IsNullOrWhiteSpace(managerDto.Name))
+            {
+                manager.Name = managerDto.Name;
+                employee.empName = managerDto.Name;
+            }
+
+            if (!string.IsNullOrWhiteSpace(managerDto.Email))
+            {
+                employee.empEmail = managerDto.Email;
+            }
+
+            if (!string.IsNullOrWhiteSpace(managerDto.Password))
+            {
+                employee.empPassword = _passwordHasher.HashPassword(null, managerDto.Password);
+            }
+
+            if (!string.IsNullOrWhiteSpace(managerDto.Address))
+            {
+                manager.Address = managerDto.Address;
+            }
+
+            if (!string.IsNullOrWhiteSpace(managerDto.PhoneNumber))
+            {
+                manager.PhoneNumber = managerDto.PhoneNumber;
+                employee.PhoneNumber = managerDto.PhoneNumber;
+            }
+
+            if (managerDto.DepartmentId.HasValue)
+            {
+                bool departmentExists = await DbContext.Departments.AnyAsync(d => d.deptId == managerDto.DepartmentId);
+                if (!departmentExists) return BadRequest("Invalid DepartmentId.");
+
+                manager.DepartmentId = managerDto.DepartmentId.Value;
+                employee.deptId = managerDto.DepartmentId.Value;
+            }
+
+            await DbContext.SaveChangesAsync();
+            return Ok("Manager updated successfully.");
         }
+
         [HttpGet("manager/{id}")]
 
         public async Task<IActionResult> GetManagerById(Guid id)
@@ -111,14 +160,29 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpGet("get-managers")]
-        [Authorize (Roles = "Admin,User,Manager")]
+        [Authorize(Roles = "Admin,User,Manager")]
         public async Task<IActionResult> GetManagers()
         {
-            var managers = await DbContext.Managers.ToListAsync();
-            if (managers == null) return NotFound("there is no managers yet.");
+            var managers = await DbContext.Managers
+                .Join(DbContext.Employees,
+                      m => m.ManagerId,
+                      e => e.empId,
+                      (m, e) => new
+                      {
+                          m.ManagerId,
+                          m.Name,
+                          m.Address,
+                          m.PhoneNumber,
+                          m.DepartmentId,
+                          Email = e.empEmail
+                      })
+                .ToListAsync();
+
+            if (managers == null || !managers.Any()) return NotFound("There are no managers yet.");
 
             return Ok(managers);
         }
+
         [HttpDelete("delete-manager/{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteManager(Guid id)
@@ -140,34 +204,6 @@ namespace Hr_System_Demo_3.Controllers
             await DbContext.SaveChangesAsync();
 
             return Ok(new { Message = "Manager deleted successfully", ManagerId = id });
-        }
-
-        [HttpPut("edit-manager/{id}")]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> EditManager(Guid id, [FromBody] ManagerDto managerDto)
-        {
-            if (managerDto == null)
-            {
-                return BadRequest("Invalid manager data.");
-            }
-
-            var manager = await DbContext.Managers.FindAsync(id);
-            if (manager == null)
-            {
-                return NotFound("Manager not found.");
-            }
-
-            // Update manager properties
-            manager.Name = managerDto.Name;
-            manager.Address = managerDto.Address;
-            manager.PhoneNumber = managerDto.PhoneNumber;
-            manager.DepartmentId = managerDto.DepartmentId;
-
-            // Save changes to the database
-            DbContext.Managers.Update(manager);
-            await DbContext.SaveChangesAsync();
-
-            return Ok(new { Message = "Manager updated successfully", ManagerId = manager.ManagerId });
         }
 
 
