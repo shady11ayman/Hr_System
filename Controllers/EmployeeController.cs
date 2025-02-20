@@ -211,6 +211,58 @@ namespace Hr_System_Demo_3.Controllers
             return Ok(employees);
         }
 
+        [HttpGet("attendance/{userId}")]
+        [Authorize(Roles = "Admin, User, Manager")]
+        public async Task<ActionResult> GetAttendance(Guid userId, [FromQuery] int page = 1)
+        {
+            if (page < 1)
+            {
+                return BadRequest("Page number must be 1 or greater.");
+            }
+
+            // Check if the user exists
+            var employee = await DbContext.Employees
+                .Include(e => e.ShiftType)
+                .FirstOrDefaultAsync(e => e.empId == userId);
+
+            if (employee == null)
+            {
+                return NotFound("Employee not found.");
+            }
+
+            // Get total count of attendance records for pagination
+            var totalRecords = await DbContext.ScanRecords
+                .Where(s => s.EmployeeId == userId)
+                .CountAsync();
+
+            if (totalRecords == 0)
+            {
+                return NotFound("No attendance records found for this employee.");
+            }
+
+            // Retrieve paginated attendance records (latest first)
+            var attendanceRecords = await DbContext.ScanRecords
+                .Where(s => s.EmployeeId == userId)
+                .OrderByDescending(s => s.Date)  // Newest records first
+                .Skip((page - 1) * 10)
+                .Take(10)
+                .ToListAsync();
+
+            return Ok(new
+            {
+                EmployeeId = userId,
+                CurrentPage = page,
+                TotalPages = (int)Math.Ceiling(totalRecords / 10.0),
+                AttendanceRecords = attendanceRecords.Select(s => new
+                {
+                    s.Date,
+                    EntryTime = s.EntryTime,
+                    ExitTime = s.ExitTime,
+                    s.ipAddress
+                })
+            });
+        }
+
 
     }
 }

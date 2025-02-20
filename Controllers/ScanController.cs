@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
+using OfficeOpenXml.Style;
 using System.ComponentModel;
 using System.Security.Claims;
 
@@ -131,67 +132,120 @@ namespace Hr_System_Demo_3.Controllers
         }
 
         [HttpGet("export-salary-statements")]
-        [AllowAnonymous]
-        public async Task<IActionResult> ExportSalaryStatements()
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ExportSalaryStatements(int year, int month)
         {
-            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
-
-            using (var package = new ExcelPackage())
+            try
             {
-                var salaryStatements = await DbContext.SalaryStatements
-                    .Include(s => s.Employee)
-                        .ThenInclude(e => e.Manager)
-                    .Include(s => s.Deductions) 
-                    .ToListAsync();
+                ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
-                var groupedStatements = salaryStatements.GroupBy(s => s.EmployeeId);
-
-                foreach (var group in groupedStatements)
+                using (var package = new ExcelPackage())
                 {
-                    var employee = group.First().Employee;
-                    var employeeName = employee?.empName ?? "Unknown";
-                    var worksheet = package.Workbook.Worksheets.Add($"{employeeName}");
+                    var salaryStatements = await DbContext.SalaryStatements
+                        .Include(s => s.Employee)
+                            .ThenInclude(e => e.Manager)
+                        .Include(s => s.Deductions)
+                        .Where(s => s.StatementDate.Year == year && s.StatementDate.Month == month)
+                        .ToListAsync();
 
-                    // Headers
-                    worksheet.Cells[1, 1].Value = "Employee Name";
-                    worksheet.Cells[1, 2].Value = "Total Salary";
-                    worksheet.Cells[1, 3].Value = "Total Deductions";
-                    worksheet.Cells[1, 4].Value = "Net Salary";
-                    worksheet.Cells[1, 5].Value = "Manager Name";
-                    worksheet.Cells[1, 6].Value = "HR Name";
-                    worksheet.Cells[1, 7].Value = "Deduction Date"; 
-
-                    int row = 2;
-                    foreach (var statement in group)
+                    if (!salaryStatements.Any())
                     {
-                        var managerName = statement.Employee?.Manager?.Name ?? "N/A";
-                        var hr = await DbContext.Employees.FirstOrDefaultAsync(e => e.empId == statement.Employee.Hr_Id);
-                        var hrName = hr?.empName ?? "N/A";
+                        return BadRequest(new
+                        {
+                            Status = "Error",
+                            Message = "No salary statements found for the given year and month.",
+                            Year = year,
+                            Month = month
+                        });
+                    }
 
-                        // Get the most recent deduction date (or "N/A" if none exist)
-                        var latestDeductionDate = statement.Deductions?.OrderByDescending(d => d.Date)
-                                                   .FirstOrDefault()?.Date.ToString("yyyy-MM-dd") ?? "N/A";
+                    var groupedStatements = salaryStatements.GroupBy(s => s.EmployeeId);
 
-                        worksheet.Cells[row, 1].Value = employeeName;
-                        worksheet.Cells[row, 2].Value = statement.TotalSalary;
-                        worksheet.Cells[row, 3].Value = statement.TotalDeductions;
-                        worksheet.Cells[row, 4].Value = statement.NetSalary;
-                        worksheet.Cells[row, 5].Value = managerName;
-                        worksheet.Cells[row, 6].Value = hrName;
-                        worksheet.Cells[row, 7].Value = latestDeductionDate;
+                    if (!groupedStatements.Any())
+                    {
+                        return BadRequest(new
+                        {
+                            Status = "Error",
+                            Message = "No valid employee data available for export.",
+                            EmployeeCount = salaryStatements.Select(s => s.EmployeeId).Distinct().Count()
+                        });
+                    }
+
+                    foreach (var group in groupedStatements)
+                    {
+                        var employee = group.First().Employee;
+                        var employeeName = employee?.empName ?? "Unknown";
+                        var worksheet = package.Workbook.Worksheets.Add(employeeName);
+
+                        worksheet.Cells[1, 1].Value = "Deduction Date";
+                        worksheet.Cells[1, 2].Value = "Reason";
+                        worksheet.Cells[1, 3].Value = "Penalty Amount";
+                        worksheet.Cells[1, 4].Value = "Assigned by";
+
+                        int row = 2;
+                        foreach (var statement in group)
+                        {
+                            var approvedDeductions = statement.Deductions?
+                                .Where(d => d.state == DeductionState.Approved)
+                                .ToList();
+
+                            if (approvedDeductions != null && approvedDeductions.Any())
+                            {
+                                foreach (var deduction in approvedDeductions)
+                                {
+                                    var hr = await DbContext.Employees.FirstOrDefaultAsync(e => e.empId == statement.HrId);
+                                    worksheet.Cells[row, 1].Value = deduction.Date.ToString("yyyy-MM-dd");
+                                    worksheet.Cells[row, 2].Value = deduction.Reason;
+                                    worksheet.Cells[row, 3].Value = deduction.PenaltyAmount;
+                                    worksheet.Cells[row, 4].Value = hr?.empName ?? "N/A";
+                                    row++;
+                                }
+                            }
+                        }
 
                         row++;
-                    }
-                }
+                        worksheet.Cells[row, 1].Value = "Statement Details";
+                        worksheet.Cells[row, 1].Style.Font.Bold = true;
+                        worksheet.Cells[row + 1, 1].Value = "Salary";
+                        worksheet.Cells[row + 1, 2].Value = group.First().NetSalary;
+                        worksheet.Cells[row + 1, 2].Style.Numberformat.Format = "#,##0.00";
+                        worksheet.Cells[row + 2, 1].Value = "Total Deductions";
+                        worksheet.Cells[row + 2, 2].Value = group.First().TotalDeductions;
+                        worksheet.Cells[row + 2, 2].Style.Numberformat.Format = "#,##0.00";
+                        worksheet.Cells[row + 3, 1].Value = "Final";
+                        worksheet.Cells[row + 3, 2].Value = group.First().NetSalary - group.First().TotalDeductions;
+                        worksheet.Cells[row + 3, 2].Style.Numberformat.Format = "#,##0.00";
 
-                var stream = new MemoryStream(package.GetAsByteArray());
-                stream.Position = 0;
-                return File(stream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "SalaryStatementsReport.xlsx");
+                        worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
+                        worksheet.View.FreezePanes(2, 1);
+                    }
+
+                    if (package.Workbook.Worksheets.Count == 0)
+                    {
+                        return BadRequest(new
+                        {
+                            Status = "Error",
+                            Message = "No valid data to export.",
+                            EmployeeCount = salaryStatements.Count
+                        });
+                    }
+
+                    var fileName = $"Salary_Statements_{year}_{month:00}_Report.xlsx";
+                    var stream = new MemoryStream(package.GetAsByteArray());
+                    stream.Position = 0;
+                    return File(stream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    Status = "Error",
+                    Message = "An unexpected error occurred while generating the salary report.",
+                    ErrorDetails = ex.Message
+                });
             }
         }
-
-
-
 
     }
 }
