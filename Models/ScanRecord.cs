@@ -7,8 +7,10 @@
         public DateTime Date { get; set; } 
         public DateTime? EntryTime { get; set; } 
         public DateTime? ExitTime { get; set; } 
+        public string ipAddress { get; set; }//
 
-        
+
+
         public Employee Employee { get; set; }
     }
 }

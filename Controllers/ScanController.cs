@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OfficeOpenXml;
+using System.ComponentModel;
 using System.Security.Claims;
 
 namespace Hr_System_Demo_3.Controllers
@@ -13,7 +15,8 @@ namespace Hr_System_Demo_3.Controllers
     {
         [HttpPost("scan")]
         [Authorize(Roles = "Admin,User")]
-        public async Task<ActionResult> Scan()
+       // [AllowAnonymous]
+        public async Task<ActionResult> Scan( string ipAddress)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim))
@@ -27,114 +30,60 @@ namespace Hr_System_Demo_3.Controllers
                 .FirstOrDefaultAsync(e => e.empId == userId);
 
             if (employee == null) return NotFound("User not found");
-
             if (employee.ShiftType == null) return BadRequest("Shift type not assigned to employee");
 
             DateTime today = DateTime.UtcNow.Date;
-            var scanRecord = await DbContext.ScanRecords
+            var existingScan = await DbContext.ScanRecords
                 .FirstOrDefaultAsync(s => s.EmployeeId == userId && s.Date == today);
+
+            
+            var ipAlreadyUsed = await DbContext.ScanRecords
+                .AnyAsync(s => s.EmployeeId == userId && s.Date == today && s.ipAddress != ipAddress);
+
+            var ipAlreadyUsedWithDifferentAccount = await DbContext.ScanRecords
+               .AnyAsync(s => s.EmployeeId != userId && s.Date == today && s.ipAddress == ipAddress);
+
+
+            if (ipAlreadyUsed)
+            {
+                return BadRequest("You must scan from the same device per day.");
+
+                
+            }
+
+            if (ipAlreadyUsedWithDifferentAccount) 
+            {
+                return BadRequest("This IP address is used for another user , stop cheating");
+            }
+            
 
             DateTime currentTime = DateTime.UtcNow;
             TimeSpan shiftStart = employee.ShiftType.StartTime;
             TimeSpan shiftEnd = employee.ShiftType.EndTime;
 
-            if (scanRecord == null)
+            if (existingScan == null)
             {
-                scanRecord = new ScanRecord
+                var scanRecord = new ScanRecord
                 {
                     EmployeeId = userId,
                     Date = today,
                     EntryTime = currentTime,
-                    ExitTime = null
+                    ExitTime = null,
+                    ipAddress = ipAddress
                 };
 
                 DbContext.ScanRecords.Add(scanRecord);
                 await DbContext.SaveChangesAsync();
 
-                // Check if employee is late for arrival
-                if (currentTime.TimeOfDay > shiftStart)
-                {
-                    var delay = currentTime.TimeOfDay - shiftStart;
-                    var deductionAmount = CalculateDeduction(delay, employee.salary);
-
-                    if (deductionAmount > 0)
-                    {
-                        // Get the latest unfinalized salary statement for the employee
-                        var latestStatement = await DbContext.SalaryStatements
-                            .Where(s => s.EmployeeId == userId && s.State != SalaryStatementState.Paid)
-                            .OrderByDescending(s => s.StatementDate)
-                            .FirstOrDefaultAsync();
-
-                        if (latestStatement == null)
-                        {
-                            return BadRequest("No active salary statement found for the employee.");
-                        }
-
-                        // Create and submit the deduction
-                        var deduction = new Deduction
-                        {
-                            EmployeeId = userId,
-                            DeptId = employee.deptId,
-                            Date = today,
-                            EntryTime = currentTime,
-                            ExitTime = null,
-                            Reason = "Late Arrival",
-                            PenaltyAmount = (decimal)deductionAmount,
-                            state = DeductionState.submited,  // Deduction is waiting for approval
-                            SalaryStatementId = latestStatement.Id // Associate deduction with the latest salary statement
-                        };
-
-                        DbContext.Deductions.Add(deduction);
-                        await DbContext.SaveChangesAsync();
-                    }
-                }
                 return Ok(new { Message = "Entry scan recorded successfully", EntryTime = scanRecord.EntryTime });
             }
             else
             {
-                if (scanRecord.ExitTime == null)
+                if (existingScan.ExitTime == null)
                 {
-                    scanRecord.ExitTime = currentTime;
+                    existingScan.ExitTime = currentTime;
                     await DbContext.SaveChangesAsync();
-
-                    // Check if employee is leaving early
-                    if (currentTime.TimeOfDay < shiftEnd)
-                    {
-                        var earlyLeaveDuration = shiftEnd - currentTime.TimeOfDay;
-                        var deductionAmount = CalculateDeduction(earlyLeaveDuration, employee.salary);
-
-                        if (deductionAmount > 0)
-                        {
-                            // Get the latest unfinalized salary statement for the employee
-                            var latestStatement = await DbContext.SalaryStatements
-                                .Where(s => s.EmployeeId == userId && s.State != SalaryStatementState.Paid)
-                                .OrderByDescending(s => s.StatementDate)
-                                .FirstOrDefaultAsync();
-
-                            if (latestStatement == null)
-                            {
-                                return BadRequest("No active salary statement found for the employee.");
-                            }
-
-                            // Create and submit the deduction
-                            var deduction = new Deduction
-                            {
-                                EmployeeId = userId,
-                                DeptId = employee.deptId,
-                                Date = today,
-                                EntryTime = scanRecord.EntryTime,
-                                ExitTime = currentTime,
-                                Reason = "Early Leave",
-                                PenaltyAmount = (decimal)deductionAmount,
-                                state = DeductionState.submited,  // Deduction is waiting for approval
-                                SalaryStatementId = latestStatement.Id // Associate deduction with the latest salary statement
-                            };
-
-                            DbContext.Deductions.Add(deduction);
-                            await DbContext.SaveChangesAsync();
-                        }
-                    }
-                    return Ok(new { Message = "Exit scan recorded successfully", ExitTime = scanRecord.ExitTime });
+                    return Ok(new { Message = "Exit scan recorded successfully", ExitTime = existingScan.ExitTime });
                 }
                 else
                 {
@@ -143,13 +92,101 @@ namespace Hr_System_Demo_3.Controllers
             }
         }
 
-        private double CalculateDeduction(TimeSpan timeDifference, double salary)
+        [HttpPost("process-absences")]
+        [Authorize(Roles = "Admin")]
+        //[AllowAnonymous]
+        public async Task<ActionResult> ProcessAbsences()
         {
-            double minutesLate = timeDifference.TotalMinutes;
+            DateTime today = DateTime.UtcNow.Date;
+            var employees = await DbContext.Employees.ToListAsync();
 
-            if (minutesLate < 15) return 0;  // No deduction for < 15 mins
-            if (minutesLate <= 90) return salary / 21 / 2; // Half-day deduction
-            return salary / 21; // Full-day deduction
+            foreach (var employee in employees)
+            {
+                var scanExists = await DbContext.ScanRecords.AnyAsync(s => s.EmployeeId == employee.empId && s.Date == today);
+                if (!scanExists)
+                {
+                    var latestStatement = await DbContext.SalaryStatements
+                        .Where(s => s.EmployeeId == employee.empId && s.State != SalaryStatementState.Paid)
+                        .OrderByDescending(s => s.StatementDate)
+                        .FirstOrDefaultAsync();
+
+                    if (latestStatement == null) continue;
+
+                    var deduction = new Deduction
+                    {
+                        EmployeeId = employee.empId,
+                        DeptId = employee.deptId,
+                        Date = today,
+                        Reason = "Full Day Absence",
+                        PenaltyAmount = (decimal)(employee.salary / 21),
+                        state = DeductionState.submited,
+                        SalaryStatementId = latestStatement.Id
+                    };
+
+                    DbContext.Deductions.Add(deduction);
+                }
+            }
+            await DbContext.SaveChangesAsync();
+            return Ok("Absences processed successfully.");
         }
+
+        [HttpGet("export-salary-statements")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ExportSalaryStatements()
+        {
+            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+
+            using (var package = new ExcelPackage())
+            {
+                var salaryStatements = await DbContext.SalaryStatements
+                    .Include(s => s.Employee) 
+                    .ThenInclude(e => e.Manager) 
+                    .ToListAsync();
+
+                var groupedStatements = salaryStatements.GroupBy(s => s.EmployeeId);
+
+                foreach (var group in groupedStatements)
+                {
+                    var employee = group.First().Employee;
+                    var employeeName = employee?.empName ?? "Unknown";
+                    var worksheet = package.Workbook.Worksheets.Add($"{employeeName}");
+
+                    
+                    worksheet.Cells[1, 1].Value = "Employee Name";
+                    worksheet.Cells[1, 2].Value = "Total Salary";
+                    worksheet.Cells[1, 3].Value = "Total Deductions";
+                    worksheet.Cells[1, 4].Value = "Net Salary";
+                    worksheet.Cells[1, 5].Value = "Manager Name";
+                    worksheet.Cells[1, 6].Value = "HR Name";
+
+                    int row = 2;
+                    foreach (var statement in group)
+                    {
+                        var managerName = statement.Employee?.Manager?.Name ?? "N/A";
+                        var hr = await DbContext.Employees.FirstOrDefaultAsync(e => e.empId == statement.Employee.Hr_Id);
+                        var hrName = hr?.empName ?? "N/A";
+
+                        worksheet.Cells[row, 1].Value = employeeName;
+                        worksheet.Cells[row, 2].Value = statement.TotalSalary;
+                        worksheet.Cells[row, 3].Value = statement.TotalDeductions;
+                        worksheet.Cells[row, 4].Value = statement.NetSalary;
+                        worksheet.Cells[row, 5].Value = managerName;
+                        worksheet.Cells[row, 6].Value = hrName;
+
+                        row++;
+                    }
+                }
+
+                var stream = new MemoryStream(package.GetAsByteArray());
+                stream.Position = 0;
+                return File(stream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "SalaryStatementsReport.xlsx");
+            }
+        }
+
+
+
     }
 }
+
+
+
