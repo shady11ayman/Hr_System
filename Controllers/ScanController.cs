@@ -139,8 +139,9 @@ namespace Hr_System_Demo_3.Controllers
             using (var package = new ExcelPackage())
             {
                 var salaryStatements = await DbContext.SalaryStatements
-                    .Include(s => s.Employee) 
-                    .ThenInclude(e => e.Manager) 
+                    .Include(s => s.Employee)
+                        .ThenInclude(e => e.Manager)
+                    .Include(s => s.Deductions) 
                     .ToListAsync();
 
                 var groupedStatements = salaryStatements.GroupBy(s => s.EmployeeId);
@@ -151,13 +152,14 @@ namespace Hr_System_Demo_3.Controllers
                     var employeeName = employee?.empName ?? "Unknown";
                     var worksheet = package.Workbook.Worksheets.Add($"{employeeName}");
 
-                    
+                    // Headers
                     worksheet.Cells[1, 1].Value = "Employee Name";
                     worksheet.Cells[1, 2].Value = "Total Salary";
                     worksheet.Cells[1, 3].Value = "Total Deductions";
                     worksheet.Cells[1, 4].Value = "Net Salary";
                     worksheet.Cells[1, 5].Value = "Manager Name";
                     worksheet.Cells[1, 6].Value = "HR Name";
+                    worksheet.Cells[1, 7].Value = "Deduction Date"; 
 
                     int row = 2;
                     foreach (var statement in group)
@@ -166,12 +168,17 @@ namespace Hr_System_Demo_3.Controllers
                         var hr = await DbContext.Employees.FirstOrDefaultAsync(e => e.empId == statement.Employee.Hr_Id);
                         var hrName = hr?.empName ?? "N/A";
 
+                        // Get the most recent deduction date (or "N/A" if none exist)
+                        var latestDeductionDate = statement.Deductions?.OrderByDescending(d => d.Date)
+                                                   .FirstOrDefault()?.Date.ToString("yyyy-MM-dd") ?? "N/A";
+
                         worksheet.Cells[row, 1].Value = employeeName;
                         worksheet.Cells[row, 2].Value = statement.TotalSalary;
                         worksheet.Cells[row, 3].Value = statement.TotalDeductions;
                         worksheet.Cells[row, 4].Value = statement.NetSalary;
                         worksheet.Cells[row, 5].Value = managerName;
                         worksheet.Cells[row, 6].Value = hrName;
+                        worksheet.Cells[row, 7].Value = latestDeductionDate;
 
                         row++;
                     }
@@ -182,6 +189,7 @@ namespace Hr_System_Demo_3.Controllers
                 return File(stream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "SalaryStatementsReport.xlsx");
             }
         }
+
 
 
 
